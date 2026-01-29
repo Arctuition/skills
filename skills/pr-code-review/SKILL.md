@@ -1,9 +1,9 @@
 ---
-name: gh-pr-code-review
+name: pr-code-review
 description: Perform GitHub pull request code reviews using the gh CLI. Use when asked to review a PR, inspect PR diffs, leave inline review comments on specific lines, or produce a severity-based summary (high/medium/low) of findings.
 ---
 
-# GH PR Code Review
+# PR Code Review
 
 Use this skill to review GitHub PRs end-to-end with the gh CLI, leave inline comments tied to specific code lines, and conclude with a severity summary.
 
@@ -23,6 +23,7 @@ Use this skill to review GitHub PRs end-to-end with the gh CLI, leave inline com
 - Capture metadata to anchor comments and fetch commit IDs.
 
 Suggested commands (see references/gh-cli.md):
+
 - `gh pr view <pr> --json number,title,headRefOid,baseRefName,headRefName,author,changedFiles,additions,deletions`
 - `gh pr view <pr> --json files --jq '.files[] | {path,additions,deletions}'`
 
@@ -33,6 +34,7 @@ Suggested commands (see references/gh-cli.md):
 - For larger PRs, break the diff into files and review sequentially.
 
 Suggested commands:
+
 - `gh pr diff <pr> --name-only`
 - `gh pr diff <pr> --patch`
 - `gh pr diff <pr> --patch --color=never > /tmp/pr.diff`
@@ -49,10 +51,12 @@ Suggested commands:
 - If inline comments are not possible, fall back to a general review comment.
 
 Primary path (inline comment via GitHub API using `gh api`):
+
 - Use `headRefOid` as `commit_id`.
 - Use file path and line number from the patch output.
 
 Fallback path (general review comment):
+
 - Use `gh pr review --comment -b "..."` or `gh pr comment -b "..."`.
 
 See references/gh-cli.md for examples.
