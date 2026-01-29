@@ -1,11 +1,11 @@
 ---
 name: jira-ticket-creator
-description: Create Jira tickets using jira-cli (https://github.com/ankitpokhrel/jira-cli). Use when the user asks to create Jira tickets, issues, or stories with work types (Epic/Story/Bug/A/B Test), set to Backlog status, with Components and Platform set to Dev. Returns the ticket URL after creation. Assumes jira-cli is already installed and configured (user has run 'jira init').
+description: Create Jira tickets using jira-cli (https://github.com/ankitpokhrel/jira-cli). Use when the user asks to create Jira tickets, issues, or stories with work types (Epic/Story/Bug/A/B Test), set to Backlog status. Selects the most appropriate component from API/Projects/Proposals/Backends/Regression/AI using the -C flag. Returns the ticket URL after creation. Assumes jira-cli is already installed and configured (user has run 'jira init').
 ---
 
 # Jira Ticket Creator
 
-Create Jira tickets non-interactively using the jira-cli tool with proper custom field handling.
+Create Jira tickets non-interactively using the jira-cli tool.
 
 ## Prerequisites
 
@@ -13,6 +13,25 @@ Before using this skill, ensure:
 - jira-cli is installed: `brew install jira-cli` or download from [releases](https://github.com/ankitpokhrel/jira-cli/releases)
 - Authentication is configured: User has run `jira init` and set up API token
 - User has access to the target Jira project
+
+## Available Components
+
+Select the most appropriate component based on the ticket content:
+
+- **API**: REST API endpoints, API design, external integrations
+- **Projects**: Project-related features, project management functionality
+- **Proposals**: Proposal features, proposal workflows
+- **Backends**: Backend services, database, server-side logic, caching, performance
+- **Regression**: Bug fixes, regression issues, quality assurance
+- **AI**: AI/ML features, intelligent automation, ChatGPT integrations
+
+**Selection Examples:**
+- "Optimize query performance with Redis caching" → Backends
+- "Add ChatGPT integration" → AI
+- "Create project REST API" → API
+- "Fix login bug on Safari" → Regression
+- "Add proposal approval workflow" → Proposals
+- "Implement project dashboard" → Projects
 
 ## Quick Start
 
@@ -23,8 +42,17 @@ jira issue create \
   -t<TYPE> \
   -s"<SUMMARY>" \
   -b"<DESCRIPTION>" \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -C <COMPONENT> \
+  --no-input
+```
+
+**Example:**
+```bash
+jira issue create \
+  -tStory \
+  -s"Optimize project query performance with Redis caching" \
+  -b"Implement batch processing and Redis caching for project queries" \
+  -C Backends \
   --no-input
 ```
 
@@ -46,8 +74,7 @@ jira issue create \
   -tStory \
   -s"Add user authentication" \
   -b"Implement JWT-based authentication for API endpoints" \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -C API \
   --no-input
 ```
 
@@ -58,11 +85,10 @@ To link a story/bug to an epic, use the `-P` flag:
 ```bash
 jira issue create \
   -tStory \
-  -s"Update login UI" \
-  -b"Modernize the login page design" \
+  -s"Update project dashboard UI" \
+  -b"Modernize the project dashboard design" \
   -P PROJ-123 \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -C Projects \
   --no-input
 ```
 
@@ -71,10 +97,9 @@ jira issue create \
 ```bash
 jira issue create \
   -tEpic \
-  -s"Q1 2024 Mobile Redesign" \
-  -b"Complete redesign of mobile application with new branding" \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -s"Q1 2024 AI Integration Initiative" \
+  -b"Integrate AI capabilities across the platform" \
+  -C AI \
   --no-input
 ```
 
@@ -85,8 +110,7 @@ jira issue create \
   -tBug \
   -s"Login fails on Safari" \
   -b"Users cannot log in when using Safari browser on macOS. Error message: 'Invalid credentials'" \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -C Regression \
   --no-input
 ```
 
@@ -99,8 +123,7 @@ jira issue create \
 ```bash
 # Step 1: Create the ticket and capture the issue key
 ISSUE_KEY=$(jira issue create -tStory -s"Summary" -b"Description" \
-  --custom "Components=Dev" --custom "Platform=Dev" --no-input \
-  | grep -oE '[A-Z]+-[0-9]+' | head -1)
+  -C Backends --no-input | grep -oE '[A-Z]+-[0-9]+' | head -1)
 
 # Step 2: Move to Backlog status
 jira issue move "$ISSUE_KEY" "Backlog"
@@ -138,24 +161,27 @@ When viewing issues in the interactive list:
 
 ## Helper Script
 
-For complex workflows, use the included helper script:
+For complex workflows, you can create a helper script if needed:
 
 ```bash
-python scripts/create_ticket.py \
-  -t Story \
-  -s "Add user authentication" \
-  -b "Implement JWT-based authentication for API endpoints" \
-  -c Dev \
-  -p Dev
+#!/bin/bash
+# create_jira_ticket.sh
+TYPE=$1
+SUMMARY=$2
+DESCRIPTION=$3
+COMPONENT=$4
+
+jira issue create \
+  -t"$TYPE" \
+  -s"$SUMMARY" \
+  -b"$DESCRIPTION" \
+  -C "$COMPONENT" \
+  --no-input
 ```
 
-Optional: Link to a parent epic:
+Usage:
 ```bash
-python scripts/create_ticket.py \
-  -t Story \
-  -s "Update login UI" \
-  -b "Modernize the login page design" \
-  -P PROJ-123
+./create_jira_ticket.sh Story "Add authentication" "Implement JWT auth" API
 ```
 
 ## Complete Workflow Example
@@ -163,31 +189,30 @@ python scripts/create_ticket.py \
 Create a ticket with all required fields and get the URL:
 
 ```bash
-# Create the ticket
+# Step 1: Create the ticket (select appropriate component based on the task)
 OUTPUT=$(jira issue create \
   -tStory \
-  -s"Implement user dashboard" \
-  -b"Create a dashboard showing user activity metrics and recent actions" \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -s"Implement project dashboard" \
+  -b"Create a dashboard showing project metrics and recent activity" \
+  -C Projects \
   --no-input)
 
-# Extract the issue key
+# Step 2: Extract the issue key
 ISSUE_KEY=$(echo "$OUTPUT" | grep -oE '[A-Z]+-[0-9]+' | head -1)
 
-# Move to Backlog
+# Step 3: Move to Backlog
 jira issue move "$ISSUE_KEY" "Backlog"
 
-# Get and display the URL
+# Step 4: Get and display the URL
 echo "Ticket created: https://your-domain.atlassian.net/browse/$ISSUE_KEY"
 
 # Or open directly in browser
 jira open "$ISSUE_KEY"
 ```
 
-## Custom Fields Reference
+## Component Selection Reference
 
-For detailed information about custom field configuration and troubleshooting, see [references/custom_fields.md](references/custom_fields.md).
+For detailed guidance on selecting the appropriate component, see [references/component_selection.md](references/component_selection.md).
 
 ## Troubleshooting
 
@@ -197,11 +222,11 @@ If you get authentication errors, reconfigure jira-cli:
 jira init
 ```
 
-### Custom Field Not Found
-If "Components" or "Platform" fields are not recognized:
-1. Run `jira issue create` interactively to see available field names
-2. Check field names in an existing issue: `jira issue view PROJ-123`
-3. Update the `--custom` flag with the correct field names
+### Component Not Found
+If a component is not recognized:
+1. List available components: `jira component list`
+2. Verify the component name matches exactly (case-sensitive)
+3. Valid components: API, Projects, Proposals, Backends, Regression, AI
 
 ### Invalid Issue Type
 If "A/B Test" is not recognized, verify it's configured in your Jira project:
@@ -216,30 +241,27 @@ jira issue create \
   -tBug \
   -s"Login fails on Safari browser" \
   -b"Users report they cannot log in when using Safari. The login button appears unresponsive." \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -C Regression \
   --no-input
 ```
 
-### User requests: "Create an epic for the mobile redesign project"
+### User requests: "Create an epic for AI integration"
 ```bash
 jira issue create \
   -tEpic \
-  -s"Mobile App Redesign Initiative" \
-  -b"Comprehensive redesign of the mobile application including new UI/UX, performance improvements, and feature additions" \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -s"AI Integration Initiative" \
+  -b"Integrate AI capabilities including ChatGPT, automated insights, and intelligent recommendations" \
+  -C AI \
   --no-input
 ```
 
-### User requests: "Create a story under epic PROJ-456 for the profile page"
+### User requests: "Create a story under epic PROJ-456 for project analytics API"
 ```bash
 jira issue create \
   -tStory \
-  -s"Build user profile page" \
-  -b"As a user, I want to view and edit my profile information including avatar, bio, and contact details" \
+  -s"Build project analytics API endpoint" \
+  -b"As a developer, I want a REST API endpoint to retrieve project analytics data" \
   -P PROJ-456 \
-  --custom "Components=Dev" \
-  --custom "Platform=Dev" \
+  -C API \
   --no-input
 ```
