@@ -5,7 +5,52 @@ description: "Analyze and resolve Sentry issues by fetching detailed issue infor
 
 # Sentry Issue Resolver
 
-Fetch Sentry issues with complete stack traces, analyze root causes, and provide actionable solutions using Sentry REST API.
+Fetch Sentry issues with complete stack traces, analyze root causes, and provide actionable solutions using the Sentry CLI.
+
+## Prerequisites
+
+### Sentry CLI Installation
+
+Install the Sentry CLI using one of these methods:
+
+**Recommended (shell script):**
+```bash
+curl https://cli.sentry.dev/install -fsS | bash
+```
+
+**Alternative methods:**
+```bash
+# Using npm
+npm install -g @sentry/cli
+
+# Using npx (no installation)
+npx @sentry/cli <command>
+```
+
+### Authentication
+
+Authenticate with Sentry using the OAuth device flow (recommended):
+```bash
+sentry auth login
+```
+
+This will open a browser window for you to authorize the CLI. The credentials will be saved for future use.
+
+**Alternative: Token-based authentication**
+```bash
+sentry auth login --token YOUR_TOKEN_HERE
+```
+
+You can create a token at: https://sentry.io/settings/account/api/auth-tokens/
+
+### Verify Authentication
+
+Check your authentication status:
+```bash
+sentry auth status
+```
+
+This will show your authenticated organization and user.
 
 ## Workflow
 
@@ -19,53 +64,49 @@ When the user requests Sentry issue analysis:
 
 2. **Check Authentication**
 
-   First verify that `SENTRY_AUTH_TOKEN` is set in the environment:
+   Verify that you're authenticated:
    ```bash
-   echo $SENTRY_AUTH_TOKEN
+   sentry auth status
    ```
 
-   If not set, inform the user:
-   "Please set your Sentry auth token: `export SENTRY_AUTH_TOKEN=your_token_here`"
-   "You can create a token at: https://sentry.io/settings/account/api/auth-tokens/"
-
-3. **Fetch Event List**
-
-   Get the list of events for the issue to obtain event IDs:
+   If not authenticated, run:
    ```bash
-   curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+   sentry auth login
+   ```
+
+3. **Fetch Issue Details**
+
+   Get the issue details including the latest event:
+   ```bash
+   sentry issue view <ISSUE_ID> --json
    ```
 
    Example:
    ```bash
-   curl "https://sentry.io/api/0/organizations/arcsite/issues/7219768209/events/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+   sentry issue view 7219768209 --json
    ```
 
-   If jq is available, extract event IDs:
+   This returns:
+   - Issue metadata (title, status, frequency)
+   - Latest event ID
+   - Tags and context
+   - First and last seen timestamps
+
+   To open the issue in your browser for visual inspection:
    ```bash
-   curl "..." | jq -r '.[].eventID'
+   sentry issue view 7219768209 -w
    ```
-
-   If jq is not available, that's fine - work with the raw JSON response.
 
 4. **Fetch Complete Event Details**
 
-   Get the full event details including stack trace for the latest event:
+   Get the full event details including stack trace for analysis:
    ```bash
-   curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+   sentry event view <EVENT_ID> --json
    ```
 
    Example:
    ```bash
-   curl "https://sentry.io/api/0/organizations/arcsite/issues/7219768209/events/abc123/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-   ```
-
-   If jq is available, extract stack trace info:
-   ```bash
-   curl "..." | jq -r '.exception.values[]?.stacktrace.frames[] | "\(.filename):\(.lineno) \(.function)"'
+   sentry event view abc123def456 --json
    ```
 
    The response includes:
@@ -73,6 +114,12 @@ When the user requests Sentry issue analysis:
    - `exception.values[].type` and `exception.values[].value` - Error type and message
    - `tags`, `user`, `request` - Context data
    - `context` - Additional environment and runtime information
+
+   **Fallback if event ID is not available:**
+   If you need to use the Sentry API directly:
+   ```bash
+   sentry api /organizations/<ORG>/issues/<ISSUE_ID>/events/<EVENT_ID>/
+   ```
 
 5. **Analyze the Issue**
    - Examine the stack trace for the error location
@@ -134,72 +181,123 @@ When the user requests Sentry issue analysis:
    [Description and implementation]
    ```
 
-## Sentry API Commands
+## Sentry CLI Commands Reference
 
-**List events for an issue (get event IDs):**
+### Authentication Commands
+
+**Check authentication status:**
 ```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+sentry auth status
 ```
 
-With jq to extract just the event IDs:
+**Login with OAuth (recommended):**
 ```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
-  | jq -r '.[].eventID'
+sentry auth login
 ```
 
-**Get complete event details (including stack trace):**
+**Login with token:**
 ```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+sentry auth login --token YOUR_TOKEN_HERE
 ```
 
-With jq to extract stack trace:
+**Logout:**
 ```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
-  | jq -r '.exception.values[]?.stacktrace.frames[] | "\(.filename):\(.lineno) \(.function)"'
+sentry auth logout
 ```
 
-**Extract specific information with jq (optional):**
+### Issue Commands
+
+**View issue details:**
 ```bash
-# Get error message
-jq -r '.exception.values[0].value'
+sentry issue view <ISSUE_ID> [--json] [-w]
+```
+- `--json` - Output as JSON for programmatic processing
+- `-w` - Open in web browser
 
-# Get error type
-jq -r '.exception.values[0].type'
-
-# Get user context
-jq -r '.user'
-
-# Get request info
-jq -r '.request'
+**List issues:**
+```bash
+sentry issue list --org <ORG> --project <PROJ> [--json] [--status unresolved|resolved|ignored] [--query "search terms"] [--limit N]
 ```
 
-**Note:** jq is optional. If the user doesn't have jq installed, work with the raw JSON response directly.
+Examples:
+```bash
+# List unresolved issues in a project
+sentry issue list --org arcsite --project my-app --status unresolved
 
-## Working with API Responses
+# Search for specific error type
+sentry issue list --org arcsite --project my-app --query "TypeError"
+```
 
-**When jq is available:**
-- Use it to extract and format specific fields for easier analysis
-- Pipe curl output directly to jq for cleaner results
+### Event Commands
 
-**When jq is NOT available:**
-- Work with the raw JSON response
-- Look for key fields manually in the JSON:
-  - `exception.values[].type` - Error type
-  - `exception.values[].value` - Error message
-  - `exception.values[].stacktrace.frames[]` - Stack trace frames
+**View event details:**
+```bash
+sentry event view <EVENT_ID> [--json] [-w]
+```
+- `--json` - Output as JSON for programmatic processing
+- `-w` - Open in web browser
+
+### Direct API Access
+
+**For advanced use cases, call Sentry API directly:**
+```bash
+sentry api <endpoint> [--method GET|POST|PUT|DELETE] [--field key=value] [--include] [--paginate]
+```
+
+Examples:
+```bash
+# Get event details via API
+sentry api /organizations/arcsite/issues/7219768209/events/abc123/
+
+# List events for an issue
+sentry api /organizations/arcsite/issues/7219768209/events/
+```
+
+## Working with CLI Output
+
+### JSON Output Structure
+
+**Issue View (`sentry issue view --json`):**
+- `id` - Issue ID
+- `title` - Issue title/error message
+- `metadata.type` - Error type
+- `metadata.value` - Error value
+- `count` - Number of events
+- `userCount` - Number of affected users
+- `status` - Issue status (unresolved, resolved, ignored)
+- `latestEvent.id` - Latest event ID
+- `firstSeen`, `lastSeen` - Timestamps
+
+**Event View (`sentry event view --json`):**
+- `eventID` - Event ID
+- `exception.values[].type` - Exception type
+- `exception.values[].value` - Exception message
+- `exception.values[].stacktrace.frames[]` - Stack trace frames
   - Each frame has: `filename`, `lineno`, `function`, `context_line`, `pre_context`, `post_context`
-- The latest event is typically most useful for analysis
+- `tags` - Event tags (environment, release, etc.)
+- `user` - User information
+- `request` - HTTP request details
+- `context` - Additional runtime context
 
-**Typical Workflow:**
-1. First, fetch the events list to get the latest event ID (usually first in the array)
-2. Then fetch that event's full details
-3. Extract stack trace from `exception.values[0].stacktrace.frames`
-4. The frames are ordered from innermost (where error occurred) to outermost
-5. Look at `context_line`, `pre_context`, and `post_context` for code context around the error
+### Typical Workflow
+
+1. View the issue to get metadata and latest event ID:
+   ```bash
+   sentry issue view 7219768209 --json
+   ```
+
+2. Extract the latest event ID from the response
+
+3. View the event details to get full stack trace:
+   ```bash
+   sentry event view <EVENT_ID> --json
+   ```
+
+4. Analyze the stack trace from `exception.values[0].stacktrace.frames`
+   - Frames are ordered from innermost (where error occurred) to outermost
+   - Look at `context_line`, `pre_context`, and `post_context` for code context
+
+5. Use browser view (`-w` flag) for visual inspection when needed
 
 ## Analysis Tips
 
@@ -220,13 +318,29 @@ jq -r '.request'
 4. **Pattern Recognition**: Does it only happen for certain inputs, users, or environments?
 5. **Timing Analysis**: Does it happen at specific times, after specific actions, or randomly?
 
-## Prerequisites
+## Troubleshooting
 
-- **SENTRY_AUTH_TOKEN** environment variable set with a valid Sentry auth token
-  - Create a token at: https://sentry.io/settings/account/api/auth-tokens/
-  - Set it: `export SENTRY_AUTH_TOKEN=your_token_here`
-- **curl** (pre-installed on most systems)
-- **jq** (optional, for easier JSON parsing)
-  - Install: `brew install jq` (macOS) or `apt-get install jq` (Linux)
-  - Not required - can work with raw JSON if jq is unavailable
-- Access to the Sentry organization (typically arcsite)
+**CLI not found:**
+- Verify installation: `which sentry` or `sentry --version`
+- If installed via npm, ensure npm bin directory is in PATH
+- Reinstall using the shell script method
+
+**Authentication issues:**
+- Run `sentry auth status` to check current status
+- Run `sentry auth logout` then `sentry auth login` to re-authenticate
+- Verify you have access to the organization in Sentry web UI
+
+**Issue not found:**
+- Verify the issue ID is correct
+- Check that you have access to the organization
+- Ensure the issue hasn't been deleted
+
+**Event not found:**
+- Some old events may be pruned based on retention policy
+- Try fetching the latest event from `sentry issue view` output
+- Use the API fallback: `sentry api /organizations/<ORG>/issues/<ISSUE_ID>/events/`
+
+**Missing event data:**
+- Stack traces may be incomplete if source maps are not configured
+- Some context may be redacted based on data scrubbing rules
+- Check Sentry project settings for SDK configuration issues
