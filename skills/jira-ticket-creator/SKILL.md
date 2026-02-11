@@ -7,6 +7,34 @@ description: Create Jira tickets using jira-cli (https://github.com/ankitpokhrel
 
 Create Jira tickets non-interactively using the jira-cli tool.
 
+## Writing Good Ticket Summaries & Descriptions
+
+**Focus on the problem being solved, not the technical implementation.**
+
+Tickets should clearly communicate *what problem the user or business faces* and *what outcome is desired*. Technical details (specific technologies, implementation approaches) belong in subtasks or comments — not in the ticket summary or description.
+
+### Summary Guidelines
+
+- **DO**: Describe the user-facing problem or desired outcome
+- **DON'T**: Mention specific technologies, libraries, or implementation approaches
+
+| Bad (Tech-focused) | Good (Problem-focused) |
+|---|---|
+| "Implement Redis caching for project queries" | "Reduce slow load times on project list page" |
+| "Add JWT-based authentication to API" | "Users need secure login for the platform" |
+| "Migrate database from PostgreSQL to DynamoDB" | "Improve scalability for growing user base" |
+| "Refactor proposal service to use async/await" | "Proposal page freezes when loading large datasets" |
+| "Add WebSocket support for notifications" | "Users miss important updates because notifications are delayed" |
+
+### Description Guidelines
+
+Structure descriptions around the problem and acceptance criteria:
+- **Problem**: What is the current pain point?
+- **Impact**: Who is affected and how?
+- **Desired Outcome**: What does success look like for the user?
+
+Avoid prescribing specific technical solutions in the description. Let the engineering team decide the best approach.
+
 ## Prerequisites
 
 Before using this skill, ensure:
@@ -26,12 +54,12 @@ Select the most appropriate component based on the ticket content:
 - **AI**: AI/ML features, intelligent automation, ChatGPT integrations
 
 **Selection Examples:**
-- "Optimize query performance with Redis caching" → Backends
-- "Add ChatGPT integration" → AI
-- "Create project REST API" → API
-- "Fix login bug on Safari" → Regression
-- "Add proposal approval workflow" → Proposals
-- "Implement project dashboard" → Projects
+- "Project list page loads too slowly" → Backends
+- "Users need AI-powered assistance for drafting proposals" → AI
+- "External partners need access to project data" → API
+- "Users cannot log in on Safari" → Regression
+- "Proposal approval process is manual and error-prone" → Proposals
+- "No visibility into project progress and health" → Projects
 
 ## Quick Start
 
@@ -50,8 +78,8 @@ jira issue create \
 ```bash
 jira issue create \
   -tStory \
-  -s"Optimize project query performance with Redis caching" \
-  -b"Implement batch processing and Redis caching for project queries" \
+  -s"Project list page takes too long to load for users with many projects" \
+  -b"Users with 50+ projects experience 10s+ load times on the project list page, causing frustration and drop-off. The page should load within 2 seconds regardless of project count." \
   -C Backends \
   --no-input
 ```
@@ -72,8 +100,8 @@ For standard ticket creation without a parent epic:
 ```bash
 jira issue create \
   -tStory \
-  -s"Add user authentication" \
-  -b"Implement JWT-based authentication for API endpoints" \
+  -s"Users need a secure way to access the platform" \
+  -b"Currently there is no authentication mechanism, so anyone with the URL can access the platform. Users need to be able to log in securely to protect their data." \
   -C API \
   --no-input
 ```
@@ -85,8 +113,8 @@ To link a story/bug to an epic, use the `-P` flag:
 ```bash
 jira issue create \
   -tStory \
-  -s"Update project dashboard UI" \
-  -b"Modernize the project dashboard design" \
+  -s"Team leads lack visibility into project health and progress" \
+  -b"Team leads have no centralized view of project status, making it hard to identify at-risk projects. They need a dashboard showing key metrics and recent activity at a glance." \
   -P PROJ-123 \
   -C Projects \
   --no-input
@@ -97,8 +125,8 @@ jira issue create \
 ```bash
 jira issue create \
   -tEpic \
-  -s"Q1 2024 AI Integration Initiative" \
-  -b"Integrate AI capabilities across the platform" \
+  -s"Enable AI-powered assistance across the platform" \
+  -b"Users frequently perform repetitive tasks that could be automated. AI-powered features would reduce manual effort and help users make better decisions faster." \
   -C AI \
   --no-input
 ```
@@ -108,8 +136,8 @@ jira issue create \
 ```bash
 jira issue create \
   -tBug \
-  -s"Login fails on Safari" \
-  -b"Users cannot log in when using Safari browser on macOS. Error message: 'Invalid credentials'" \
+  -s"Users on Safari cannot log in to the platform" \
+  -b"Safari users see 'Invalid credentials' when attempting to log in, even with correct credentials. This blocks all Safari users from accessing the platform." \
   -C Regression \
   --no-input
 ```
@@ -192,8 +220,8 @@ Create a ticket with all required fields and get the URL:
 # Step 1: Create the ticket (select appropriate component based on the task)
 OUTPUT=$(jira issue create \
   -tStory \
-  -s"Implement project dashboard" \
-  -b"Create a dashboard showing project metrics and recent activity" \
+  -s"Team leads need a way to monitor project health at a glance" \
+  -b"There is no centralized view for tracking project progress. Team leads must check each project individually, which is time-consuming and makes it easy to miss at-risk projects." \
   -C Projects \
   --no-input)
 
@@ -239,8 +267,8 @@ If "A/B Test" is not recognized, verify it's configured in your Jira project:
 ```bash
 jira issue create \
   -tBug \
-  -s"Login fails on Safari browser" \
-  -b"Users report they cannot log in when using Safari. The login button appears unresponsive." \
+  -s"Safari users cannot log in — login button is unresponsive" \
+  -b"Multiple users have reported that the login button does not respond on Safari, preventing them from accessing the platform entirely." \
   -C Regression \
   --no-input
 ```
@@ -249,8 +277,8 @@ jira issue create \
 ```bash
 jira issue create \
   -tEpic \
-  -s"AI Integration Initiative" \
-  -b"Integrate AI capabilities including ChatGPT, automated insights, and intelligent recommendations" \
+  -s"Help users work faster with AI-powered assistance" \
+  -b"Users spend significant time on repetitive tasks like drafting proposals and analyzing project data. AI-powered features could automate these workflows and surface actionable insights." \
   -C AI \
   --no-input
 ```
@@ -259,8 +287,8 @@ jira issue create \
 ```bash
 jira issue create \
   -tStory \
-  -s"Build project analytics API endpoint" \
-  -b"As a developer, I want a REST API endpoint to retrieve project analytics data" \
+  -s"External partners need programmatic access to project analytics" \
+  -b"Partners currently request analytics reports manually via email, which is slow and error-prone. They need a self-service way to retrieve project analytics data on demand." \
   -P PROJ-456 \
   -C API \
   --no-input

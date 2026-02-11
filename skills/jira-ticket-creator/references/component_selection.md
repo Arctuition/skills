@@ -15,14 +15,14 @@ Use the `-C` flag to specify a component:
 
 ## Component Selection Examples
 
-| Ticket Description | Component | Reason |
-|-------------------|-----------|---------|
-| "Optimize query performance with Redis" | Backends | Performance and caching |
-| "Create project REST API endpoint" | API | API development |
-| "Fix login bug on Safari" | Regression | Bug fix |
-| "Add ChatGPT integration" | AI | AI feature |
-| "Implement proposal approval workflow" | Proposals | Proposal feature |
-| "Add project dashboard" | Projects | Project feature |
+| Ticket Description (Problem-focused) | Component | Reason |
+|---|-----------|---------|
+| "Project list page is too slow for power users" | Backends | Performance problem |
+| "External partners need self-service access to project data" | API | External data access |
+| "Users on Safari cannot log in" | Regression | User-facing bug |
+| "Users need AI-powered help drafting proposals" | AI | AI-assisted workflow |
+| "Proposal approval process is manual and error-prone" | Proposals | Proposal workflow problem |
+| "No visibility into project health across teams" | Projects | Project visibility gap |
 
 ## Setting Component via CLI
 
@@ -67,8 +67,8 @@ Supported work types for this skill:
 ### Bug
 ```bash
 jira issue create -tBug \
-  -s"Fix login error" \
-  -b"Users cannot log in when using Face ID authentication" \
+  -s"Users with Face ID cannot log in to the app" \
+  -b"Face ID users are unable to authenticate, blocking them from accessing the platform on supported devices." \
   -C Regression \
   --no-input
 ```
@@ -76,8 +76,8 @@ jira issue create -tBug \
 ### Story
 ```bash
 jira issue create -tStory \
-  -s"Add project REST API endpoint" \
-  -b"As a developer, I want a REST API to access project data" \
+  -s"External partners need self-service access to project data" \
+  -b"Partners currently rely on manual email requests for project data, creating delays and extra workload for the team." \
   -C API \
   --no-input
 ```
@@ -85,8 +85,8 @@ jira issue create -tStory \
 ### Epic
 ```bash
 jira issue create -tEpic \
-  -s"AI Integration Q1 2024" \
-  -b"Integrate AI capabilities across the platform" \
+  -s"Help users work faster with AI-powered assistance" \
+  -b"Users spend significant time on repetitive tasks. AI-powered features could automate workflows and surface actionable insights." \
   -C AI \
   --no-input
 ```
@@ -94,8 +94,8 @@ jira issue create -tEpic \
 ### Story with Parent Epic
 ```bash
 jira issue create -tStory \
-  -s"Optimize database queries for proposals" \
-  -b"Implement query optimization and caching for proposal data" \
+  -s"Proposal page freezes when loading large datasets" \
+  -b"Users with 100+ proposals experience page freezes lasting 5-10 seconds, disrupting their workflow and causing frustration." \
   -P PROJ-123 \
   -C Backends \
   --no-input
