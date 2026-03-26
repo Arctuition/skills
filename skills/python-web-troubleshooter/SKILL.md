@@ -1,6 +1,6 @@
 ---
 name: python-web-troubleshooter
-description: "Diagnose and fix Python web service issues: request queuing, Gunicorn worker exhaustion, 502/504 errors, OOM crashes, high latency, DB slowness, and capacity decisions (workers vs replicas vs DB read replicas). Use when user reports slow API, requests piling up, workers all busy, timeouts, or wants to tune Gunicorn/uWSGI. Also covers storage layer (gp2 vs gp3 IOPS) impact on web service performance."
+description: "Diagnose and fix Python web service issues: request queuing, Gunicorn worker exhaustion, 502/504 errors, OOM crashes, high latency, DB slowness, and capacity decisions (workers vs replicas vs DB read replicas). Use when user reports slow API, requests piling up, workers all busy, timeouts, or wants to tune Gunicorn/uWSGI."
 ---
 
 # Python Web Service Troubleshooter
@@ -52,8 +52,8 @@ Match observed symptoms to the most likely root cause:
 **Action:** Add more app replicas (scale out), not more workers per replica
 
 ### Symptom B: App requests queuing, but DB CPU is low
-**Root cause:** DB IO instability / storage layer performance issue (classic: RDS gp2 burst credit exhausted)
-**Action:** Check RDS IOPS and BurstBalance metrics; evaluate upgrading to gp3
+**Root cause:** DB IO instability / storage layer performance issue
+**Action:** Check RDS IOPS metrics; verify provisioned IOPS on gp3 are sufficient for current load
 
 ### Symptom C: DB CPU high, read-heavy workload
 **Root cause:** Read load exceeding single instance capacity
@@ -119,21 +119,12 @@ nproc  # check CPU count
 
 ---
 
-## Step 5: Storage Layer Check (RDS gp2 vs gp3)
+## Step 5: Storage Layer Check (RDS gp3 IOPS)
 
-### Check gp2 burst credit balance
+If app requests are queuing but DB CPU is low, the bottleneck is likely IO. Check whether provisioned IOPS are being saturated:
+
 ```bash
-# BurstBalance below 20% is a warning sign
-aws cloudwatch get-metric-statistics \
-  --namespace AWS/RDS \
-  --metric-name BurstBalance \
-  --dimensions Name=DBInstanceIdentifier,Value=<DB_INSTANCE_ID> \
-  --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
-  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
-  --period 300 \
-  --statistics Average
-
-# Also check ReadIOPS / WriteIOPS vs provisioned limit
+# Check ReadIOPS and WriteIOPS vs your provisioned limit
 aws cloudwatch get-metric-statistics \
   --namespace AWS/RDS \
   --metric-name ReadIOPS \
@@ -142,17 +133,28 @@ aws cloudwatch get-metric-statistics \
   --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
   --period 300 \
   --statistics Average
+
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/RDS \
+  --metric-name WriteIOPS \
+  --dimensions Name=DBInstanceIdentifier,Value=<DB_INSTANCE_ID> \
+  --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
+  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --period 300 \
+  --statistics Average
+
+# Also check DiskQueueDepth — sustained > 1 means IO is the bottleneck
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/RDS \
+  --metric-name DiskQueueDepth \
+  --dimensions Name=DBInstanceIdentifier,Value=<DB_INSTANCE_ID> \
+  --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
+  --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+  --period 300 \
+  --statistics Average
 ```
 
-### When to upgrade gp2 → gp3
-
-| Signal | Recommendation |
-|--------|---------------|
-| BurstBalance frequently < 20% | Evaluate gp3 upgrade soon |
-| App requests queue but DB CPU is low | Likely IOPS instability — gp3 decouples IOPS from volume size |
-| Intermittent latency spikes during peak traffic | gp2 burst may be depleting at the wrong moment |
-
-**gp3 advantage:** IOPS and throughput are independently configurable and no longer tied to burst credits. Predictable performance matters more than peak headroom on paper.
+If IOPS are hitting the provisioned ceiling or `DiskQueueDepth` is consistently above 1, increase the provisioned IOPS on the gp3 volume.
 
 ---
 
@@ -163,7 +165,7 @@ aws cloudwatch get-metric-statistics \
    ↓
 2. Fix latency → slow queries, indexes, reduce external calls, async offload
    ↓
-3. Check storage layer → gp2 IOPS / BurstBalance, upgrade to gp3 if needed
+3. Check storage layer → RDS IOPS / DiskQueueDepth; increase provisioned IOPS if saturated
    ↓
 4. Tune workers → only for long-tail slow endpoints as a buffer
    ↓
@@ -181,7 +183,7 @@ aws cloudwatch get-metric-statistics \
 [ ] Check Nginx upstream_response_time and upstream_connect_time
 [ ] Check DB slow queries (> 1s)
 [ ] Check DB CPU and load
-[ ] Check RDS BurstBalance (if on gp2)
+[ ] Check RDS ReadIOPS/WriteIOPS vs provisioned limit; check DiskQueueDepth
 [ ] Calculate throughput ceiling: total workers ÷ avg request duration
 [ ] Determine: long-tail problem or system-wide slowness?
 [ ] Determine: bottleneck in app layer or DB layer?
@@ -195,6 +197,6 @@ aws cloudwatch get-metric-statistics \
 Add workers → queue clears → DB gets hammered → latency rises → add more workers → memory pressure → OOM / 502
 
 **Death spiral #2 — Restart loop:**
-gp2 burst depletes → DB latency spikes → workers get held longer → requests pile up → OOM → container restarts → pile-up continues
+DB IO saturates → DB latency spikes → workers get held longer → requests pile up → OOM → container restarts → pile-up continues
 
 When you recognize either pattern, **stop adding workers**. Investigate storage layer and latency root cause instead.
