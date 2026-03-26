@@ -18,16 +18,31 @@ Before changing any config, collect these metrics to build a complete picture of
 | Layer | Key Metrics |
 |-------|-------------|
 | **Gunicorn** | idle worker count vs working worker count |
-| **Nginx** | `upstream_response_time`, `upstream_connect_time` |
+| **Nginx** | `upstream_response_time`, `upstream_connect_time` (check via APM or access log dashboard) |
 | **Application** | total request duration, queue wait time as % of total |
 | **Database** | DB CPU, query latency, DB load, waiting on IO? |
 
 ```bash
-# Gunicorn worker state (via process list)
-ps aux | grep gunicorn | grep -v grep
+# Gunicorn idle vs busy workers — ps only lists processes, not request state.
+# Use one of these approaches instead:
 
-# Nginx log analysis (upstream_response_time field)
-awk '{print $NF}' /var/log/nginx/access.log | sort -n | tail -20
+# Option A: If using a Prometheus exporter (e.g. prometheus-flask-exporter
+# or a custom /metrics endpoint), query worker state directly:
+#   gunicorn_workers{state="idle"}
+#   gunicorn_workers{state="working"}
+
+# Option B: Instrument via gunicorn server hooks in gunicorn.conf.py
+#   from prometheus_client import Gauge
+#   IDLE = Gauge('gunicorn_workers_idle', 'Idle workers')
+#   def pre_request(worker, req):  IDLE.dec()
+#   def post_request(worker, req, environ, resp): IDLE.inc()
+
+# Option C: Check Gunicorn's built-in stats socket (if --statsd-host is set)
+# or read the worker utilization from your APM (Datadog, New Relic, etc.)
+
+# Nginx upstream_response_time and upstream_connect_time are best read from
+# your APM (Datadog, New Relic, etc.) or your log aggregation dashboard —
+# the access log format varies too much across setups to parse reliably here.
 
 # PostgreSQL slow queries
 SELECT query, calls, mean_exec_time, total_exec_time
