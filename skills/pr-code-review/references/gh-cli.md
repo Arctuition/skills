@@ -1,60 +1,131 @@
 # gh CLI reference for PR review
 
-Keep this file short. Verify flags with `gh <command> --help` if you are unsure.
+Verify flags with `gh <command> --help` if unsure.
 
-## Discover PR metadata
+## PR metadata
 
-- View PR basics:
-  - `gh pr view <pr>`
-- JSON fields (use for commit SHA and file list):
-  - `gh pr view <pr> --json headRefOid,baseRefName,headRefName,author,changedFiles,additions,deletions`
-  - `gh pr view <pr> --json files --jq '.files[] | {path,additions,deletions}'`
+```bash
+# Basic view
+gh pr view <pr>
+
+# JSON fields (commit SHA, file list, stats)
+gh pr view <pr> --json number,title,body,headRefOid,baseRefName,headRefName,author,labels,changedFiles,additions,deletions
+
+# File list with churn
+gh pr view <pr> --json files --jq '.files[] | {path,additions,deletions}'
+```
 
 ## Diff inspection
 
-- File list:
-  - `gh pr diff <pr> --name-only`
-- Patch output with line numbers:
-  - `gh pr diff <pr> --patch`
+```bash
+# File names only
+gh pr diff <pr> --name-only
 
-## General review comments
+# Full patch
+gh pr diff <pr> --patch
 
-- Add a review comment:
-  - `gh pr review <pr> --comment -b "<comment>"`
-- Add a PR comment (non-review):
-  - `gh pr comment <pr> -b "<comment>"`
-
-## Inline review comments via GitHub API
-
-Use this when you need to attach a comment to a specific file and line.
-
-Endpoint (REST v3):
-- `POST /repos/{owner}/{repo}/pulls/{pull_number}/comments`
-
-Required fields (typical):
-- `body`: comment text
-- `commit_id`: PR head commit SHA (`headRefOid` from `gh pr view --json headRefOid`)
-- `path`: file path in the repo
-- `line`: line number in the diff hunk (RIGHT side)
-- `side`: `RIGHT`
-
-Example:
+# Save to file for large PRs
+gh pr diff <pr> --patch --color=never > /tmp/pr.diff
 ```
-PR=123
-OWNER_REPO=owner/repo
-COMMIT_SHA=$(gh pr view $PR --repo $OWNER_REPO --json headRefOid --jq .headRefOid)
+
+## Submitting a batched review (preferred)
+
+Use the Reviews API to submit all comments as a single review with a verdict. This is strongly preferred over individual comments — it creates one notification and a proper review record.
+
+**Endpoint:** `POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews`
+
+```bash
+COMMIT_SHA=$(gh pr view $PR --json headRefOid --jq .headRefOid)
 
 gh api \
   -X POST \
+  repos/$OWNER_REPO/pulls/$PR/reviews \
+  --input - <<'EOF'
+{
+  "commit_id": "<COMMIT_SHA>",
+  "event": "REQUEST_CHANGES",
+  "body": "Review summary here",
+  "comments": [
+    {
+      "path": "src/service/retry.ts",
+      "line": 42,
+      "side": "RIGHT",
+      "body": "**[HIGH]** Infinite retry loop — add max-attempts guard."
+    }
+  ]
+}
+EOF
+```
+
+**`event` values:**
+- `APPROVE` — no blocking issues
+- `REQUEST_CHANGES` — has issues that must be fixed before merge
+- `COMMENT` — informational, no verdict
+
+**Comment fields:**
+- `path` — file path relative to repo root
+- `line` — line number on the RIGHT (new) side of the diff
+- `side` — always `RIGHT` for new-code comments
+- `body` — comment text (supports full markdown including suggestion blocks)
+
+**Multi-line comments** — span a range of lines:
+```json
+{
+  "path": "src/handler.ts",
+  "start_line": 10,
+  "line": 15,
+  "start_side": "RIGHT",
+  "side": "RIGHT",
+  "body": "This entire block should be extracted into a helper."
+}
+```
+
+## GitHub suggestion blocks
+
+Use suggestion syntax in comment bodies for trivial fixes. Authors can accept with one click in the GitHub UI.
+
+**Single-line suggestion** (replaces the line specified by `line`):
+````markdown
+```suggestion
+const MAX_RETRIES = 3;
+```
+````
+
+**Multi-line suggestion** (replaces lines from `start_line` to `line`):
+````markdown
+```suggestion
+const config = loadConfig();
+const client = createClient(config);
+```
+````
+
+The suggestion replaces the exact lines in the range, so the replacement code must be complete.
+
+## Individual comments (fallback)
+
+If the Reviews API is unavailable, post comments individually.
+
+**Endpoint:** `POST /repos/{owner}/{repo}/pulls/{pull_number}/comments`
+
+```bash
+gh api \
+  -X POST \
   repos/$OWNER_REPO/pulls/$PR/comments \
-  -f body='[MEDIUM] The retry loop can spin forever; add a max-attempts guard.' \
+  -f body='[MEDIUM] Missing input validation.' \
   -f commit_id="$COMMIT_SHA" \
-  -f path='src/service/retry.ts' \
-  -f line=42 \
+  -f path='src/handler.ts' \
+  -f line=15 \
   -f side='RIGHT'
 ```
 
-Notes:
-- Use the line number from the diff hunk for the new line (RIGHT side).
-- For multi-line comments, consult the GitHub API docs to use `start_line` and `start_side`.
-- If inline comment fails, fall back to `gh pr review --comment` or `gh pr comment`.
+## General comments (last resort)
+
+Use only when you cannot tie the comment to a specific file/line.
+
+```bash
+# Review comment
+gh pr review <pr> --comment -b "<comment>"
+
+# PR comment (non-review)
+gh pr comment <pr> -b "<comment>"
+```
