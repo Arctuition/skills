@@ -169,17 +169,17 @@ The suggestion replaces the exact lines in the range, so the replacement code mu
 The `line` field in the API uses **absolute file line numbers**, not positions within the diff hunk.
 
 ```
-@@ -10,6 +12,8 @@ function example() {
+@@ -10,5 +12,6 @@ function example() {
  context line        → new file line 12
  context line        → new file line 13
 +added line          → new file line 14  ← use this for RIGHT side comment
 +added line          → new file line 15
  context line        → new file line 16
--deleted line        → old file line 15  ← use this for LEFT side comment
+-deleted line        → old file line 13  ← use this for LEFT side comment
  context line        → new file line 17
 ```
 
-- `+12,8` means the hunk starts at line 12 in the new file.
+- `+12,6` means the hunk starts at line 12 in the new file and spans 6 lines.
 - Count through context (` `) and added (`+`) lines. Skip `-` lines when counting new-file lines.
 - When in doubt, open the file with the Read tool and verify the line number matches the code.
 

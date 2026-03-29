@@ -33,6 +33,9 @@ Read the PR description and metadata to understand intent before looking at code
 gh pr view <pr> --json number,title,body,headRefOid,baseRefName,headRefName,author,labels,changedFiles,additions,deletions
 
 gh pr view <pr> --json files --jq '.files[] | {path,additions,deletions}'
+
+# Capture the head commit SHA — used throughout the review
+COMMIT_SHA=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
 ```
 
 Capture:
@@ -63,6 +66,9 @@ If other reviewers have already left comments, read them and avoid repeating the
 gh pr diff <pr> --name-only
 
 gh pr diff <pr> --patch --color=never
+
+# For large PRs, save to file to avoid flooding context
+gh pr diff <pr> --patch --color=never > /tmp/pr.diff
 ```
 
 **Prioritize high-risk files first:**
@@ -83,7 +89,14 @@ Don't review diffs in isolation. For non-trivial changes, read the full file (or
 - How the change fits into the broader module
 - Whether the change introduces inconsistencies with nearby code
 
-Use the Read tool on files checked out at the PR head, or read them via the GitHub API.
+If already on the PR branch, use the Read tool directly. Otherwise, either check out the branch first:
+```bash
+gh pr checkout <pr>
+```
+Or fetch a specific file via the API without switching branches:
+```bash
+gh api repos/$OWNER_REPO/contents/<path>?ref=$COMMIT_SHA --jq '.content' | base64 -d
+```
 
 ### 4) Analyze using the review checklist
 
@@ -172,13 +185,9 @@ Follow the [comment tone guidelines](#comment-tone) and [noise control rules](#w
 
 **Always use the Reviews API** to submit all comments as one review. This creates a single notification and a proper review record with a verdict.
 
-**Build the JSON payload as a temp file** to avoid shell escaping issues (backticks in suggestion blocks break heredocs):
+**Build the JSON payload as a temp file** to avoid shell escaping issues (backticks in suggestion blocks break heredocs).
 
-```bash
-COMMIT_SHA=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
-```
-
-Write the review payload to a temp file using the Write tool:
+Write the review payload to a temp file using the Write tool (use the `$COMMIT_SHA` captured in step 1):
 
 ```json
 {
@@ -212,7 +221,21 @@ gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.
 - `REQUEST_CHANGES` — has P0 or P1 issues that must be fixed before merge
 - `COMMENT` — only P2/P3 issues, or you want discussion without blocking
 
-**Fallback** — if the Reviews API fails (permissions, etc.), fall back to:
+**Permission requirement** — submitting a review requires write/collaborator access to the repo. If you get a 403/422 error, you lack the necessary permissions.
+
+**Fallback** — if the Reviews API fails, degrade gracefully:
+
+1. Post each inline comment individually (preserves line-level feedback):
+```bash
+gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments \
+  -f body='...' \
+  -f commit_id="$COMMIT_SHA" \
+  -f path='src/handler.ts' \
+  -f line=15 \
+  -f side='RIGHT'
+```
+
+2. Last resort — if inline comments are also unavailable, post a general comment summarizing all findings:
 ```bash
 gh pr review <pr> --comment -b "..."
 ```
@@ -283,17 +306,17 @@ Getting line numbers right is critical for inline comments. The GitHub API `line
 
 From unified diff output:
 ```
-@@ -10,6 +12,8 @@ function example() {
+@@ -10,5 +12,6 @@ function example() {
   context line        ← line 12 in new file
   context line        ← line 13
 + added line          ← line 14 (this is a RIGHT side line)
 + added line          ← line 15
   context line        ← line 16
-- deleted line        ← (LEFT side only, line 15 in old file)
+- deleted line        ← (LEFT side only, line 13 in old file)
   context line        ← line 17
 ```
 
-- The `+12,8` means this hunk starts at **line 12** in the new file and spans 8 lines.
+- The `+12,6` means this hunk starts at **line 12** in the new file and spans 6 lines.
 - Count from the start through context lines (` `) and added lines (`+`) to get the absolute line number for RIGHT side comments.
 - Lines starting with `-` exist only in the old file (LEFT side) — skip them when counting new-file line numbers.
 
