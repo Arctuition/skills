@@ -1,11 +1,11 @@
 ---
 name: jira-ticket-creator
-description: Create Jira tickets using jira-cli (https://github.com/ankitpokhrel/jira-cli). Use when the user asks to create Jira tickets, issues, or stories with work types (Epic/Story/Bug/A/B Test), set to Backlog status. Selects the most appropriate component from API/Projects/Proposals/Backends/Regression/AI using the -C flag. Returns the ticket URL after creation. Assumes jira-cli is already installed and configured (user has run 'jira init').
+description: Create, search/list, and edit Jira tickets using jira-cli (https://github.com/ankitpokhrel/jira-cli). Use when the user asks to create tickets/issues/stories/bugs/epics (Epic/Story/Bug/A/B Test, set to Backlog), list or search their Jira tickets (e.g. "what am I working on", "show my open bugs", filter by status/type/component or raw JQL), view a specific ticket by key, or edit/update an existing ticket's fields (summary, description, assignee, priority, labels, parent epic). Selects the most appropriate component from API/Projects/Proposals/Backends/Regression/AI for new tickets. Assumes jira-cli is already installed and configured (user has run 'jira init').
 ---
 
-# Jira Ticket Creator
+# Jira Ticket Manager
 
-Create Jira tickets non-interactively using the jira-cli tool.
+Create, search, view, and edit Jira tickets non-interactively using the jira-cli tool.
 
 ## Writing Good Ticket Summaries & Descriptions
 
@@ -187,6 +187,162 @@ When viewing issues in the interactive list:
 - Press `ENTER` to open in browser
 - Press `c` to copy URL to clipboard
 
+## Listing & Searching Tickets
+
+Use `jira issue list` to find tickets. Always pass `--plain` for non-interactive,
+parseable output (the default mode opens an interactive TUI).
+
+### My Open Tickets (most common)
+
+```bash
+jira issue list -a$(jira me) -s~Done -s~Closed --plain
+```
+
+The `~` prefix means "not equal". This shows your tickets that aren't Done/Closed.
+
+When the user asks "what am I working on", "show my tickets", or "what's on my
+plate", this is the default query.
+
+### Filter by Status
+
+```bash
+# Everything in progress
+jira issue list -s"In Progress" --plain
+
+# Everything in the backlog
+jira issue list -sBacklog --plain
+```
+
+### Filter by Type
+
+```bash
+jira issue list -tBug --plain
+jira issue list -tStory --plain
+jira issue list -tEpic --plain
+```
+
+### Filter by Component
+
+```bash
+jira issue list -CBackends --plain
+jira issue list -CAI --plain
+```
+
+### Combine Filters
+
+Filters AND together. Example — "my open bugs in Backends":
+
+```bash
+jira issue list -a$(jira me) -tBug -CBackends -s~Done --plain
+```
+
+### Created/Updated Recently
+
+```bash
+# Created in the last 7 days
+jira issue list --created -7d --plain
+
+# Updated in the last 24 hours
+jira issue list --updated -1d --plain
+```
+
+### Advanced: Raw JQL
+
+For anything the flags don't cover, pass raw JQL with `-q`:
+
+```bash
+jira issue list -q "assignee = currentUser() AND priority = High AND status != Done ORDER BY updated DESC" --plain
+```
+
+### View a Specific Ticket
+
+When the user references a key directly (e.g. "show me PROJ-123", "what's the
+status of PROJ-456"):
+
+```bash
+jira issue view PROJ-123
+```
+
+The output includes summary, description, status, assignee, comments, and the
+issue URL. To open in the browser instead:
+
+```bash
+jira open PROJ-123
+```
+
+## Editing Tickets
+
+Use `jira issue edit` to update an existing ticket. The field flags mirror those
+used by `jira issue create`. Always pass `--no-input` for non-interactive edits.
+
+### Update Summary
+
+```bash
+jira issue edit PROJ-123 -s"Clearer, problem-focused summary" --no-input
+```
+
+### Update Description
+
+```bash
+jira issue edit PROJ-123 -b"Updated problem statement and acceptance criteria..." --no-input
+```
+
+When rewriting summaries or descriptions, follow the same problem-focused
+guidelines from the [Writing Good Ticket Summaries & Descriptions](#writing-good-ticket-summaries--descriptions)
+section above — don't bake implementation details into the ticket.
+
+### Reassign
+
+```bash
+# Assign to a specific user
+jira issue edit PROJ-123 -a"username" --no-input
+
+# Assign to yourself
+jira issue edit PROJ-123 -a$(jira me) --no-input
+
+# Unassign (the literal "x" clears the assignee)
+jira issue edit PROJ-123 -ax --no-input
+```
+
+### Set Priority
+
+```bash
+jira issue edit PROJ-123 -yHigh --no-input
+```
+
+Common values: `Highest`, `High`, `Medium`, `Low`, `Lowest` (verify in your Jira instance).
+
+### Add Labels
+
+```bash
+jira issue edit PROJ-123 -l"frontend" -l"urgent" --no-input
+```
+
+### Link to a Parent Epic
+
+```bash
+jira issue edit PROJ-123 -PPROJ-456 --no-input
+```
+
+### Update Multiple Fields at Once
+
+```bash
+jira issue edit PROJ-123 \
+  -s"Updated summary" \
+  -yHigh \
+  -l"urgent" \
+  --no-input
+```
+
+### Edit vs. Transition
+
+`jira issue edit` updates **fields**. To change **status** (To Do → In Progress
+→ Done), use `jira issue move`:
+
+```bash
+jira issue move PROJ-123 "In Progress"
+```
+
 ## Helper Script
 
 For complex workflows, you can create a helper script if needed:
@@ -292,4 +448,36 @@ jira issue create \
   -P PROJ-456 \
   -C API \
   --no-input
+```
+
+### User requests: "What am I working on?" / "Show my open tickets"
+```bash
+jira issue list -a$(jira me) -s~Done -s~Closed --plain
+```
+
+### User requests: "Show me my open bugs in Backends"
+```bash
+jira issue list -a$(jira me) -tBug -CBackends -s~Done --plain
+```
+
+### User requests: "Show me PROJ-123" / "What's the status of PROJ-123?"
+```bash
+jira issue view PROJ-123
+```
+
+### User requests: "Reassign PROJ-123 to me and bump priority to High"
+```bash
+jira issue edit PROJ-123 -a$(jira me) -yHigh --no-input
+```
+
+### User requests: "Update the description on PROJ-123"
+```bash
+jira issue edit PROJ-123 \
+  -b"Users with 50+ projects experience 10s+ load times. Target: <2s regardless of count." \
+  --no-input
+```
+
+### User requests: "Link PROJ-123 to epic PROJ-456"
+```bash
+jira issue edit PROJ-123 -PPROJ-456 --no-input
 ```

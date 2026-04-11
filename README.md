@@ -12,12 +12,16 @@ Analyze and resolve Sentry issues with deep root cause analysis. Fetches complet
 Analyze this Sentry issue: https://arcsite.sentry.io/issues/7219768209/
 ```
 
-### Jira Ticket Creator
-Create Jira tickets non-interactively using jira-cli with automatic component selection (API, Projects, Proposals, Backends, Regression, AI).
+### Jira Ticket Manager
+Create, search/list, view, and edit Jira tickets non-interactively using jira-cli. Automatic component selection (API, Projects, Proposals, Backends, Regression, AI) for new tickets.
 
-**Usage:** Request ticket creation
+**Usage:** Create, query, or update tickets
 ```
 Create a bug ticket for login failing on Safari
+What am I working on?
+Show my open bugs in Backends
+Show me PROJ-123
+Reassign PROJ-123 to me and bump priority to High
 ```
 
 ### PR Code Review
