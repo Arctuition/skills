@@ -1,5 +1,5 @@
 ---
-name: jira-ticket-creator
+name: jira-ticket-manager
 description: Create, search/list, and edit Jira tickets using jira-cli (https://github.com/ankitpokhrel/jira-cli). Use when the user asks to create tickets/issues/stories/bugs/epics (Epic/Story/Bug/A/B Test, set to Backlog), list or search their Jira tickets (e.g. "what am I working on", "show my open bugs", filter by status/type/component or raw JQL), view a specific ticket by key, or edit/update an existing ticket's fields (summary, description, assignee, priority, labels, parent epic). Selects the most appropriate component from API/Projects/Proposals/Backends/Regression/AI for new tickets. Assumes jira-cli is already installed and configured (user has run 'jira init').
 ---
 
