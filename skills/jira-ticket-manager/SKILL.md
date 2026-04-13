@@ -283,12 +283,51 @@ jira issue edit PROJ-123 -s"Clearer, problem-focused summary" --no-input
 
 ### Update Description
 
+**Always read the existing description before editing.** Never blindly overwrite — decide which mode fits:
+
+| Mode | When to use |
+|---|---|
+| **Add** | The existing description is good but incomplete — append new sections, acceptance criteria, or context |
+| **Polish** | The structure is right but the wording is unclear, inconsistent, or too technical — refine in place |
+| **Revamp** | The description is fundamentally wrong, empty, or so outdated it misleads — full rewrite |
+
+#### Step 1 — Read the current description
+
 ```bash
-jira issue edit PROJ-123 -b"Updated problem statement and acceptance criteria..." --no-input
+jira issue view PROJ-123
 ```
 
-When rewriting summaries or descriptions, follow the same problem-focused
-guidelines from the [Writing Good Ticket Summaries & Descriptions](#writing-good-ticket-summaries--descriptions)
+Inspect the output. Is the description accurate? Missing information? Just rough?
+
+#### Step 2 — Choose your mode and edit accordingly
+
+**Add** (preserve existing, append new content):
+```bash
+# Build new_description by prepending existing text + new sections
+jira issue edit PROJ-123 \
+  -b"<EXISTING CONTENT>
+
+## Additional Context
+<NEW SECTIONS ONLY>" \
+  --no-input
+```
+
+**Polish** (keep structure, improve wording):
+```bash
+jira issue edit PROJ-123 \
+  -b"<REFINED VERSION OF EXISTING CONTENT>" \
+  --no-input
+```
+
+**Revamp** (full rewrite — only when existing content is fundamentally wrong or empty):
+```bash
+jira issue edit PROJ-123 \
+  -b"<COMPLETELY NEW DESCRIPTION>" \
+  --no-input
+```
+
+When rewriting or polishing, follow the same problem-focused guidelines from the
+[Writing Good Ticket Summaries & Descriptions](#writing-good-ticket-summaries--descriptions)
 section above — don't bake implementation details into the ticket.
 
 ### Reassign
@@ -472,8 +511,14 @@ jira issue edit PROJ-123 -a$(jira me) -yHigh --no-input
 
 ### User requests: "Update the description on PROJ-123"
 ```bash
+# Step 1: Read the existing description first
+jira issue view PROJ-123
+
+# Step 2: Based on what you see, choose add / polish / revamp (see Editing Tickets section)
+# Example — polishing vague existing content:
 jira issue edit PROJ-123 \
-  -b"Users with 50+ projects experience 10s+ load times. Target: <2s regardless of count." \
+  -b"Users with 50+ projects experience 10s+ load times on the project list page.
+Target: page should load in under 2 seconds regardless of project count." \
   --no-input
 ```
 
