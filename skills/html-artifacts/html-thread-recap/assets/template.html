@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thread recap — &lt;topic&gt;</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --ivory:    #FAF9F5;
+      --slate:    #141413;
+      --clay:     #D97757;
+      --oat:      #E3DACC;
+      --olive:    #788C5D;
+      --gray-150: #F0EEE6;
+      --gray-300: #D1CFC5;
+      --gray-500: #87867F;
+      --gray-700: #3D3D3A;
+      --white:    #FFFFFF;
+      --serif: ui-serif, Georgia, 'Times New Roman', serif;
+      --sans:  system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --mono:  ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--sans); background: var(--ivory);
+      color: var(--gray-700); line-height: 1.55;
+      padding: 56px 32px 120px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .page { max-width: 1040px; margin: 0 auto; }
+    .layout {
+      display: grid; grid-template-columns: 1fr 240px;
+      gap: 48px; align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc { display: none; }
+    }
+
+    /* header */
+    .eyebrow {
+      font-family: var(--mono); font-size: 12px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--gray-500); margin-bottom: 12px;
+    }
+    h1 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 36px; line-height: 1.15;
+      color: var(--slate); letter-spacing: -0.01em;
+    }
+    .meta {
+      display: flex; flex-wrap: wrap; gap: 18px;
+      font-family: var(--mono); font-size: 12.5px;
+      color: var(--gray-500); margin-top: 12px;
+    }
+    h2 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 24px; color: var(--slate);
+      margin: 40px 0 16px; letter-spacing: -0.005em;
+    }
+
+    /* prompt */
+    .prompt-box {
+      background: var(--gray-150);
+      border: 1.5px solid var(--gray-300);
+      border-radius: 12px; padding: 16px 20px;
+      font-size: 14.5px; margin-top: 24px;
+    }
+    .prompt-box .label {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500); display: block; margin-bottom: 6px;
+    }
+
+    /* tldr */
+    .tldr {
+      background: var(--gray-150);
+      border-left: 3px solid var(--clay);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 22px; margin: 20px 0 36px;
+    }
+    .tldr p { font-size: 15.5px; line-height: 1.6; color: var(--slate); }
+
+    /* topic chips */
+    .topic-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 999px;
+      font-family: var(--mono); font-size: 12.5px; text-decoration: none;
+      border: 1px solid var(--gray-300); color: var(--gray-700);
+      background: var(--white);
+    }
+    .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-500); }
+    .chip:hover { border-color: var(--gray-500); }
+
+    /* TOC */
+    .toc {
+      position: sticky; top: 32px;
+      border-left: 1px solid var(--gray-300);
+      padding-left: 18px; font-size: 13px;
+    }
+    .toc-label {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500); margin-bottom: 12px;
+    }
+    .toc a {
+      display: block; padding: 4px 0;
+      color: var(--gray-700); text-decoration: none;
+    }
+    .toc a:hover { color: var(--clay); }
+
+    /* decision card */
+    .decision {
+      border: 1px solid var(--gray-300); border-radius: 12px;
+      background: var(--white); padding: 22px 24px;
+      margin-bottom: 24px;
+    }
+    .decision-head { margin-bottom: 14px; }
+    .decision-num {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--gray-500); display: block; margin-bottom: 4px;
+    }
+    .decision h3 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 21px; color: var(--slate);
+      letter-spacing: -0.005em;
+    }
+
+    .options { list-style: none; margin: 12px 0 16px; padding: 0; }
+    .opt {
+      display: grid; grid-template-columns: 90px 1fr;
+      gap: 14px; padding: 10px 12px; border-radius: 8px;
+      margin-bottom: 6px; align-items: baseline;
+    }
+    .opt strong { color: var(--slate); font-weight: 500; }
+    .opt-note {
+      display: block; color: var(--gray-700);
+      font-size: 14px; margin-top: 2px; grid-column: 2;
+    }
+    .opt .marker {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.08em; padding: 3px 8px;
+      border-radius: 999px; text-align: center;
+      align-self: center;
+    }
+    .opt.chosen { background: rgba(120,140,93,0.10); }
+    .opt.chosen .marker { background: var(--olive); color: var(--white); }
+    .opt.rejected .marker {
+      background: var(--white); color: var(--gray-500);
+      border: 1px solid var(--gray-300);
+    }
+    .opt.rejected strong { color: var(--gray-700); }
+
+    .because, .tradeoff { font-size: 14.5px; line-height: 1.55; margin-top: 8px; }
+    .because .kw, .tradeoff .kw {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500); margin-right: 6px;
+    }
+
+    /* dead end */
+    .dead-end {
+      background: var(--oat);
+      border-left: 3px solid #B8AC92;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px; margin-bottom: 12px;
+    }
+    .de-label {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.08em; color: var(--gray-700);
+      background: var(--white); padding: 2px 8px;
+      border-radius: 999px;
+      display: inline-block; margin-bottom: 8px;
+    }
+    .de-what { font-size: 14.5px; color: var(--slate); margin-bottom: 6px; }
+    .de-why { font-size: 14px; color: var(--gray-700); }
+    .de-why .kw {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500); margin-right: 6px;
+    }
+
+    /* open questions */
+    .open-list { list-style: none; }
+    .open-list li {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--gray-300);
+      font-size: 14.5px;
+    }
+    .open-list li:last-child { border-bottom: none; }
+    .q-tag {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.08em; color: var(--clay);
+      background: rgba(217,119,87,0.10);
+      padding: 2px 8px; border-radius: 999px;
+      margin-right: 10px;
+    }
+    .q-owner {
+      font-family: var(--mono); font-size: 12px;
+      color: var(--gray-500); margin-left: 8px;
+    }
+
+    /* references */
+    .ref-list { list-style: none; }
+    .ref-list li { margin-bottom: 8px; }
+    .ref-badge {
+      display: inline-flex; align-items: baseline; gap: 12px;
+      padding: 8px 14px;
+      border: 1px solid var(--gray-300);
+      border-radius: 8px; background: var(--white);
+      text-decoration: none; font-size: 14px;
+      color: var(--gray-700);
+    }
+    .ref-badge:hover { border-color: var(--gray-500); }
+    .ref-badge .src {
+      font-family: var(--mono); font-size: 10.5px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--gray-500);
+    }
+    .ref-badge .key {
+      font-family: var(--mono); font-size: 12.5px;
+      color: var(--slate);
+    }
+
+    /* files panel */
+    .panel {
+      background: var(--white); border: 1px solid var(--gray-300);
+      border-radius: 10px; padding: 18px 20px; margin-top: 16px;
+    }
+    .panel-label {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--gray-500); margin-bottom: 10px;
+    }
+    .kf { margin-bottom: 12px; }
+    .kf code { font-family: var(--mono); font-size: 13px; color: var(--slate); }
+    .kf p { font-size: 13px; margin-top: 2px; color: var(--gray-700); }
+
+    /* code */
+    .code {
+      background: var(--gray-150);
+      border: 1px solid var(--gray-300);
+      border-radius: 8px; padding: 14px 16px;
+      font-family: var(--mono); font-size: 12.5px;
+      line-height: 1.55; overflow-x: auto;
+      white-space: pre;
+    }
+    .code .add { color: var(--olive); display: block; }
+    .code .del { color: var(--clay); display: block; }
+    .code-caption {
+      font-family: var(--mono); font-size: 11px;
+      color: var(--gray-500); text-transform: uppercase;
+      letter-spacing: 0.06em; margin-bottom: 6px;
+    }
+
+    /* excerpt */
+    .excerpt {
+      border-left: 3px solid var(--gray-300);
+      padding: 8px 16px; margin: 14px 0;
+      background: var(--white);
+    }
+    .ex-label {
+      font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--gray-500);
+      display: block; margin-bottom: 6px;
+    }
+    .excerpt p { font-size: 14.5px; color: var(--slate); line-height: 1.55; }
+
+    p, li { font-size: 14.5px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="layout">
+      <main>
+        <header>
+          <p class="eyebrow">THREAD RECAP · &lt;repo or topic&gt;</p>
+          <h1>&lt;The thing that was being figured out&gt;</h1>
+          <div class="meta">
+            <span class="stat">Claude Code session</span>
+            <span class="stat"><strong>2026-05-09</strong></span>
+            <span class="stat"><strong>47 turns</strong></span>
+            <span class="stat">recapped by <strong>@you</strong></span>
+          </div>
+          <div class="prompt-box">
+            <span class="label">PROMPT</span>
+            &lt;The user's original ask, optional&gt;
+          </div>
+        </header>
+
+        <section id="tldr" class="tldr">
+          <p>&lt;3–5 sentences. Lead with what was being figured out, then the headline decision, then the current state. The reader should be able to absorb this and decide whether to keep reading.&gt;</p>
+        </section>
+
+        <div class="topic-chips">
+          <a class="chip" href="#d-1"><span class="dot"></span>Topic 1</a>
+          <a class="chip" href="#d-2"><span class="dot"></span>Topic 2</a>
+          <a class="chip" href="#d-3"><span class="dot"></span>Topic 3</a>
+        </div>
+
+        <section id="decisions">
+          <h2>Decisions &amp; tradeoffs</h2>
+
+          <article class="decision" id="d-1">
+            <header class="decision-head">
+              <span class="decision-num">DECISION 1</span>
+              <h3>&lt;The question being decided&gt;</h3>
+            </header>
+            <ul class="options">
+              <li class="opt chosen">
+                <span class="marker">CHOSEN</span>
+                <strong>&lt;Option A name&gt;</strong>
+                <span class="opt-note">&lt;One line on what it is.&gt;</span>
+              </li>
+              <li class="opt rejected">
+                <span class="marker">REJECTED</span>
+                <strong>&lt;Option B name&gt;</strong>
+                <span class="opt-note">&lt;One line on what it is.&gt;</span>
+              </li>
+              <li class="opt rejected">
+                <span class="marker">REJECTED</span>
+                <strong>&lt;Option C name&gt;</strong>
+                <span class="opt-note">&lt;One line on what it is.&gt;</span>
+              </li>
+            </ul>
+            <p class="because"><span class="kw">Because:</span> &lt;the deciding constraint or priority — one sharp reason, not a list of pros&gt;</p>
+            <p class="tradeoff"><span class="kw">Tradeoff:</span> &lt;what we gave up&gt;</p>
+          </article>
+
+          <article class="decision" id="d-2">
+            <header class="decision-head">
+              <span class="decision-num">DECISION 2</span>
+              <h3>&lt;Next decision&gt;</h3>
+            </header>
+            <ul class="options">
+              <li class="opt chosen">
+                <span class="marker">CHOSEN</span>
+                <strong>&lt;Option A&gt;</strong>
+                <span class="opt-note">&lt;One line.&gt;</span>
+              </li>
+              <li class="opt rejected">
+                <span class="marker">REJECTED</span>
+                <strong>&lt;Option B&gt;</strong>
+                <span class="opt-note">&lt;One line.&gt;</span>
+              </li>
+            </ul>
+            <p class="because"><span class="kw">Because:</span> &lt;reason&gt;</p>
+            <p class="tradeoff"><span class="kw">Tradeoff:</span> &lt;what we gave up&gt;</p>
+          </article>
+        </section>
+
+        <section id="dead-ends">
+          <h2>Dead ends</h2>
+
+          <div class="dead-end">
+            <span class="de-label">TRIED</span>
+            <p class="de-what">&lt;What we tried.&gt;</p>
+            <p class="de-why"><span class="kw">Why we stopped:</span> &lt;What broke or didn't work, and what it taught us.&gt;</p>
+          </div>
+
+          <div class="dead-end">
+            <span class="de-label">TRIED</span>
+            <p class="de-what">&lt;Another attempt.&gt;</p>
+            <p class="de-why"><span class="kw">Why we stopped:</span> &lt;Reason.&gt;</p>
+          </div>
+        </section>
+
+        <section id="open">
+          <h2>Open questions</h2>
+          <ul class="open-list">
+            <li>
+              <span class="q-tag">OPEN</span>
+              &lt;Unresolved question.&gt; <span class="q-owner">→ @owner to call</span>
+            </li>
+            <li>
+              <span class="q-tag">OPEN</span>
+              &lt;Another unresolved thing.&gt;
+            </li>
+          </ul>
+        </section>
+
+        <section id="refs">
+          <h2>Artifacts &amp; references</h2>
+
+          <aside class="panel">
+            <p class="panel-label">FILES TOUCHED</p>
+            <div class="kf"><code>path/to/file.ts</code><p>&lt;What changed in one line.&gt;</p></div>
+            <div class="kf"><code>path/to/other.ts</code><p>&lt;What changed.&gt;</p></div>
+          </aside>
+
+          <ul class="ref-list" style="margin-top: 16px;">
+            <li>
+              <a class="ref-badge" href="#">
+                <span class="src">JIRA</span>
+                <span class="key">PROJ-1247</span>
+                <span class="title">&lt;Ticket title&gt;</span>
+              </a>
+            </li>
+            <li>
+              <a class="ref-badge" href="#">
+                <span class="src">SENTRY</span>
+                <span class="key">python-prod #91382</span>
+                <span class="title">&lt;Issue title&gt;</span>
+              </a>
+            </li>
+            <li>
+              <a class="ref-badge" href="#">
+                <span class="src">GITHUB</span>
+                <span class="key">PR #312</span>
+                <span class="title">&lt;branch&gt; → main</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+      </main>
+
+      <aside class="toc">
+        <p class="toc-label">IN THIS RECAP</p>
+        <a href="#tldr">TL;DR</a>
+        <a href="#decisions">Decisions</a>
+        <a href="#dead-ends">Dead ends</a>
+        <a href="#open">Open questions</a>
+        <a href="#refs">References</a>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>
