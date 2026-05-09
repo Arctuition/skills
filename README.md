@@ -1,83 +1,37 @@
 # ArcSite Skills
 
-A collection of custom skills for [Claude Code CLI](https://github.com/anthropics/claude-code) that extend Claude's capabilities with specialized workflows and integrations.
+Custom skills for [Claude Code](https://github.com/anthropics/claude-code) used day-to-day at ArcSite.
 
-## Available Skills
+These skills are designed to be small and composable. Each one lives in its own folder under `skills/`, with a `SKILL.md` that defines when it triggers and how it runs.
 
-### Sentry Issue Resolver
-Analyze and resolve Sentry issues with deep root cause analysis. Fetches complete stack traces, error context, and event data via the Sentry REST API.
+## Quickstart
 
-**Usage:** Provide a Sentry issue URL
-```
-Analyze this Sentry issue: https://arcsite.sentry.io/issues/7219768209/
-```
+1. Clone this repo into your Claude Code skills directory (or symlink it).
+2. Make sure the prerequisites for the skills you want are set up:
+   - **sentry-issue-resolver** — `SENTRY_AUTH_TOKEN` env var
+   - **jira-ticket-manager** — [`jira-cli`](https://github.com/ankitpokhrel/jira-cli) installed and `jira init` run
+   - **pr-code-review** — [`gh`](https://cli.github.com/) installed and authenticated
+3. Reference a skill by name in conversation, or invoke it directly with `/skill-name`.
 
-### Jira Ticket Manager
-Create, search/list, view, and edit Jira tickets non-interactively using jira-cli. Automatic component selection (API, Projects, Proposals, Backends, Regression, AI) for new tickets.
+## Reference
 
-**Usage:** Create, query, or update tickets
-```
-Create a bug ticket for login failing on Safari
-What am I working on?
-Show my open bugs in Backends
-Show me PROJ-123
-Reassign PROJ-123 to me and bump priority to High
-```
+### Engineering
 
-### PR Code Review
-Perform comprehensive GitHub pull request reviews using the gh CLI. Provides severity-based analysis (high/medium/low) with inline comments.
+Skills that operate on code and tickets.
 
-**Usage:** Request PR review
-```
-Review PR #123
-```
+- **[jira-ticket-manager](./skills/engineering/jira-ticket-manager/SKILL.md)** — Create, search, view, and edit Jira tickets non-interactively via `jira-cli`. Auto-selects the right component (API / Projects / Proposals / Backends / Regression / AI).
+- **[pr-code-review](./skills/engineering/pr-code-review/SKILL.md)** — Review GitHub PRs via `gh`. Posts inline comments on specific lines and submits a single batched review with a P0–P3 priority summary and a verdict.
+- **[sentry-issue-resolver](./skills/engineering/sentry-issue-resolver/SKILL.md)** — Fetch a Sentry issue with full stack trace and event context, then walk the root cause and propose a fix.
 
-## Installation
+### HTML Artifacts
 
-1. Install [Claude Code CLI](https://github.com/anthropics/claude-code)
-2. Clone this repository
-3. Individual skills may have prerequisites:
-   - **Sentry Issue Resolver**: Set `SENTRY_AUTH_TOKEN` environment variable
-   - **Jira Ticket Creator**: Install and configure [jira-cli](https://github.com/ankitpokhrel/jira-cli)
-   - **PR Code Review**: Install and authenticate [GitHub CLI](https://cli.github.com/)
+Skills that produce a single self-contained HTML file you can hand to a teammate. They share a visual vocabulary in [`references/design-tokens.md`](./skills/html-artifacts/html-module-map/references/design-tokens.md).
 
-## Using Skills
+- **[html-module-map](./skills/html-artifacts/html-module-map/SKILL.md)** — Break down a module, feature, or workflow into an inline-SVG architecture diagram with the hot path highlighted, a key-files panel, a numbered callstack walkthrough, gotchas, and a glossary.
+- **[html-pr-review](./skills/html-artifacts/html-pr-review/SKILL.md)** — Code review companion for the reviewer: risk-coloured file map, annotated diff with margin notes and severity tags, call graph, and questions worth asking the author.
+- **[html-pr-writeup](./skills/html-artifacts/html-pr-writeup/SKILL.md)** — PR cover letter for the author: motivation, before/after behaviour, file-by-file tour, where to focus the review, test plan, and rollout.
+- **[html-thread-recap](./skills/html-artifacts/html-thread-recap/SKILL.md)** — Decision log of a Claude / ChatGPT / pairing thread for a teammate who wasn't in the room — questions explored, decisions and tradeoffs, dead ends, open questions, artifacts.
 
-Skills are automatically loaded by Claude Code when this repository is in your skills directory. Reference skills by name in your conversations:
+## Adding a Skill
 
-```
-Use sentry-issue-resolver to analyze https://arcsite.sentry.io/issues/7219768209/
-```
-
-Or use the skill name directly:
-```
-/sentry-issue-resolver https://arcsite.sentry.io/issues/7219768209/
-```
-
-## Skill Structure
-
-Each skill is organized in its own directory:
-```
-skills/
-├── skill-name/
-│   ├── SKILL.md          # Main skill definition and workflow
-│   └── references/       # Supporting documentation and examples
-```
-
-## Contributing
-
-To add a new skill:
-
-1. Create a new directory under `skills/`
-2. Add a `SKILL.md` file with:
-   - YAML frontmatter (name, description)
-   - Workflow documentation
-   - Examples and prerequisites
-3. Add reference materials in a `references/` subdirectory
-4. Follow patterns from existing skills
-
-See [CLAUDE.md](CLAUDE.md) for detailed development guidelines.
-
-## License
-
-Internal use for ArcSite development.
+See [CLAUDE.md](./CLAUDE.md) for the layout and conventions.
