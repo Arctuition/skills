@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PR #N — Review Companion</title>
+  <style>
+    :root {
+      --ivory:    #FAF9F5;
+      --slate:    #141413;
+      --clay:     #D97757;
+      --oat:      #E3DACC;
+      --olive:    #788C5D;
+      --gray-150: #F0EEE6;
+      --gray-300: #D1CFC5;
+      --gray-500: #87867F;
+      --gray-700: #3D3D3A;
+      --white:    #FFFFFF;
+      --serif: ui-serif, Georgia, 'Times New Roman', serif;
+      --sans:  system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --mono:  ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--sans); background: var(--ivory);
+      color: var(--gray-700); line-height: 1.55;
+      padding: 56px 32px 120px; -webkit-font-smoothing: antialiased;
+    }
+    .page { max-width: 1040px; margin: 0 auto; }
+
+    .pr-card {
+      background: var(--white);
+      border: 1px solid var(--gray-300); border-radius: 14px;
+      padding: 28px 32px; margin-bottom: 36px;
+    }
+    .eyebrow {
+      font-family: var(--mono); font-size: 12px;
+      letter-spacing: 0.06em; color: var(--gray-500);
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 30px; color: var(--slate);
+      letter-spacing: -0.005em; margin-bottom: 14px;
+    }
+    .pr-meta {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      font-family: var(--mono); font-size: 12.5px; color: var(--gray-500);
+    }
+    .author-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--gray-150); border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .author-chip .avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--clay); color: white;
+      display: grid; place-items: center;
+      font-size: 10px; font-weight: 600;
+    }
+    .branch {
+      background: var(--gray-150); padding: 2px 8px; border-radius: 4px;
+    }
+    .add { color: var(--olive); }
+    .del { color: var(--clay); }
+
+    section { margin-bottom: 56px; scroll-margin-top: 24px; }
+    h2 {
+      font-family: var(--serif); font-weight: 500;
+      font-size: 22px; color: var(--slate); margin-bottom: 14px;
+    }
+    p { margin-bottom: 12px; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { padding: 3px 0; }
+
+    code {
+      font-family: var(--mono); font-size: 0.92em;
+      background: var(--gray-150); padding: 1px 6px; border-radius: 4px;
+      color: var(--slate);
+    }
+
+    /* Risk map */
+    .risk-map { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: 999px;
+      font-family: var(--mono); font-size: 12.5px;
+      text-decoration: none; color: var(--gray-700);
+      border: 1px solid var(--gray-300); background: var(--white);
+    }
+    .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-500); }
+    .chip.safe       { background: rgba(120,140,93,0.10); border-color: rgba(120,140,93,0.45); }
+    .chip.safe .dot  { background: var(--olive); }
+    .chip.medium     { background: var(--oat); }
+    .chip.medium .dot{ background: #A89968; }
+    .chip.attention  { background: rgba(217,119,87,0.12); border-color: rgba(217,119,87,0.55); }
+    .chip.attention .dot { background: var(--clay); }
+    .legend {
+      display: flex; gap: 20px; font-family: var(--mono); font-size: 12px;
+      color: var(--gray-500);
+    }
+    .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+    /* Files */
+    .file-card {
+      background: var(--white); border: 1px solid var(--gray-300);
+      border-radius: 12px; padding: 22px 24px; margin-bottom: 16px;
+      scroll-margin-top: 24px;
+    }
+    .file-head {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .file-path { font-family: var(--mono); font-size: 13px; color: var(--slate); }
+    .file-delta { font-family: var(--mono); font-size: 12.5px; color: var(--gray-500); }
+    .risk-tag {
+      font-family: var(--mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .risk-tag.safe       { background: rgba(120,140,93,0.15); color: var(--olive); }
+    .risk-tag.medium     { background: var(--oat); color: #7A6A4F; }
+    .risk-tag.attention  { background: rgba(217,119,87,0.15); color: var(--clay); }
+
+    /* Annotated diff */
+    .diff {
+      background: #1F1E1C; color: #EAE7DA;
+      border-radius: 10px; padding: 14px 0;
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+      margin-top: 12px; overflow: hidden;
+    }
+    .diff-row { display: grid; grid-template-columns: 44px 22px 1fr; align-items: start; }
+    .diff-row .ln { color: #6E6A5E; text-align: right; padding-right: 10px; }
+    .diff-row .mark { text-align: center; color: #6E6A5E; }
+    .diff-row pre { white-space: pre-wrap; padding-right: 16px; }
+    .diff-row.add { background: rgba(120,140,93,0.18); }
+    .diff-row.add .mark { color: var(--olive); }
+    .diff-row.del { background: rgba(217,119,87,0.18); }
+    .diff-row.del .mark { color: var(--clay); }
+    .diff-row.context {}
+
+    .bubble {
+      background: var(--ivory); color: var(--gray-700);
+      border-left: 3px solid var(--gray-500);
+      padding: 10px 14px; margin: 6px 14px 6px 66px;
+      border-radius: 0 8px 8px 0; font-family: var(--sans); font-size: 13px;
+    }
+    .bubble.blocking { border-left-color: var(--clay); }
+    .bubble.question { border-left-color: var(--slate); }
+    .bubble.nit      { border-left-color: var(--gray-500); }
+    .bubble .label {
+      font-family: var(--mono); font-size: 10.5px;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      display: block; margin-bottom: 4px; color: var(--gray-500);
+    }
+    .bubble.blocking .label { color: var(--clay); }
+
+    /* Q&A */
+    ol.questions { list-style: none; counter-reset: q; padding-left: 0; }
+    ol.questions li {
+      counter-increment: q; padding-left: 32px; position: relative;
+      margin-bottom: 12px; font-size: 14.5px;
+    }
+    ol.questions li::before {
+      content: counter(q); position: absolute; left: 0;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--gray-150); border: 1px solid var(--gray-300);
+      display: grid; place-items: center;
+      font-family: var(--mono); font-size: 12px; color: var(--gray-700);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="pr-card">
+      <p class="eyebrow">REPO · Pull Request #N</p>
+      <h1>PR title goes here</h1>
+      <div class="pr-meta">
+        <span class="author-chip"><span class="avatar">XX</span>Author Name</span>
+        <span>opened N days ago</span>
+        <span class="branch">branch → main</span>
+        <span><span class="add">+NNN</span> / <span class="del">−NNN</span></span>
+        <span>N files changed</span>
+      </div>
+    </div>
+
+    <section id="what">
+      <h2>What this PR does</h2>
+      <ul>
+        <li>Reviewer's restatement, not the author's words.</li>
+        <li>Three to five bullets.</li>
+      </ul>
+    </section>
+
+    <section id="risk">
+      <h2>Risk map</h2>
+      <div class="risk-map">
+        <a class="chip attention" href="#file-1"><span class="dot"></span>path/to/risky.ts</a>
+        <a class="chip medium"    href="#file-2"><span class="dot"></span>path/to/medium.ts</a>
+        <a class="chip safe"      href="#file-3"><span class="dot"></span>path/to/safe.ts</a>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--olive)"></span>safe</span>
+        <span><span class="dot" style="background:#A89968"></span>worth a look</span>
+        <span><span class="dot" style="background:var(--clay)"></span>needs attention</span>
+      </div>
+    </section>
+
+    <section id="files">
+      <h2>Files</h2>
+
+      <div class="file-card" id="file-1">
+        <div class="file-head">
+          <span class="file-path">path/to/risky.ts</span>
+          <span class="file-delta"><span class="add">+58</span> <span class="del">−0</span></span>
+          <span class="risk-tag attention">needs attention</span>
+        </div>
+        <p>What changed and why this is risky.</p>
+
+        <div class="diff">
+          <div class="diff-row context"><span class="ln">42</span><span class="mark"> </span><pre>function pickWorker() {</pre></div>
+          <div class="diff-row del"><span class="ln">43</span><span class="mark">-</span><pre>  return workers[Math.floor(Math.random() * workers.length)];</pre></div>
+          <div class="diff-row add"><span class="ln">44</span><span class="mark">+</span><pre>  return workers[counter++ % workers.length];</pre></div>
+        </div>
+        <div class="bubble blocking">
+          <span class="label">BLOCKING</span>
+          <p><code>counter</code> is module-local but workers run in multiple processes.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="questions">
+      <h2>Questions for the author</h2>
+      <ol class="questions">
+        <li><code>workerPool.ts:42</code> — counter is module-local; with N processes this is approximate round-robin. Intended?</li>
+        <li><code>migration_004.sql:11</code> — single <code>UPDATE</code> on a 50M-row table will lock. Chunked job planned as follow-up?</li>
+      </ol>
+    </section>
+
+    <section id="tests">
+      <h2>Test coverage</h2>
+      <p>What's covered automatically, what's gapped, whether the gaps matter.</p>
+    </section>
+  </div>
+</body>
+</html>

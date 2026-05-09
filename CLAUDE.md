@@ -4,22 +4,36 @@ This document provides guidance for Claude Code agents working with the ArcSite 
 
 ## Repository Structure
 
+Skills are grouped by category. Pick the category that fits, then put the skill folder inside it.
+
 ```
 skills/
-├── skill-name/
-│   ├── SKILL.md              # Skill definition with YAML frontmatter
-│   └── references/           # Supporting documentation
-│       ├── example.md
-│       └── api-reference.md
+├── engineering/                       # Core engineering workflows (review, debugging, ticketing)
+│   └── skill-name/
+│       ├── SKILL.md                   # Skill definition with YAML frontmatter
+│       └── references/                # Supporting documentation
+│           └── api-reference.md
+└── html-artifacts/                    # Skills that produce a single self-contained HTML artifact
+    └── skill-name/
+        ├── SKILL.md
+        ├── assets/template.html       # Runnable starting point
+        └── references/design-tokens.md
 ```
+
+Current categories:
+
+- **engineering/** — code review, debugging, project management, anything that operates directly on code or tickets.
+- **html-artifacts/** — skills whose output is a single self-contained HTML file (module map, PR review companion, PR writeup). They share the same visual vocabulary in `references/design-tokens.md`.
+
+Add a new category folder only when at least two skills genuinely share the category — don't create a folder for one skill.
 
 ## Creating New Skills
 
 ### 1. Directory Setup
 
-Create a new directory under `skills/` with a descriptive kebab-case name:
+Pick a category (or add a new one if you have ≥2 skills that fit it), then create a kebab-case directory:
 ```bash
-mkdir -p skills/new-skill-name/references
+mkdir -p skills/<category>/new-skill-name/references
 ```
 
 ### 2. SKILL.md Format
