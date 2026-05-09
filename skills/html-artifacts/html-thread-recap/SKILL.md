@@ -113,5 +113,4 @@ Match the user's prose language. Code, file paths, command output, error message
 
 ## Reference
 
-- `references/design-tokens.md` — full CSS/component vocabulary, including the decision card, dead-end callout, and reference badge introduced for this skill, plus everything reused from the shared design system.
-- `assets/template.html` — runnable starting point with placeholder decision cards, a dead-ends section, and a references panel. Copy and modify; delete sections you don't need.
+- `references/design-tokens.md` — full CSS/component vocabulary, including the decision card, dead-end callout, and reference badge introduced for this skill, plus everything reused from the shared design system. Read it before assembling the HTML — it has the full CSS and component markup you need to drop into the document's `<style>` and body.

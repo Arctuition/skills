@@ -103,5 +103,4 @@ Match the user's prose language. Code, file paths, ticket keys, URLs, and compon
 
 ## Reference
 
-- `references/design-tokens.md` — full CSS/component vocabulary (auto-synced from `_shared/`). The single source for colours, typography, page chrome, eyebrow, prompt box, chips, TOC sidebar, code blocks, annotated diff, before/after grid, flow diagram, callstack walkthrough, TL;DR, decision card, dead-end callout, open questions, reference badge, sidebar panels, inline excerpt.
-- `assets/template.html` — runnable starter with placeholder skeletons for the five shapes (Report / Comparison / Explainer / Dashboard / Prototype). Copy, pick the shape, delete the others, fill in.
+- `references/design-tokens.md` — full CSS/component vocabulary (auto-synced from `_shared/`). The single source for colours, typography, page chrome, eyebrow, prompt box, chips, TOC sidebar, code blocks, annotated diff, before/after grid, flow diagram, callstack walkthrough, TL;DR, decision card, dead-end callout, open questions, reference badge, sidebar panels, inline excerpt. Read it before assembling the HTML — it has the full CSS and component markup you need to drop into the document's `<style>` and body.

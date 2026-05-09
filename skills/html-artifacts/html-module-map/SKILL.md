@@ -98,5 +98,4 @@ Match the user's prose language. Code, file paths, table names, and node labels 
 
 ## Reference
 
-- `references/design-tokens.md` — full CSS/component vocabulary including the `flow` SVG diagram pattern, callstack walkthrough, key files panel, and gotchas callout.
-- `assets/template.html` — runnable starting point with placeholder diagram and walkthrough. Copy and modify.
+- `references/design-tokens.md` — full CSS/component vocabulary including the `flow` SVG diagram pattern, callstack walkthrough, key files panel, and gotchas callout. Read it before assembling the HTML — it has the full CSS and component markup you need to drop into the document's `<style>` and body.

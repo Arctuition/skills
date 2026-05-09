@@ -91,5 +91,4 @@ Match the user's language for prose. Filenames, code, branch names, bubble label
 
 ## Reference
 
-- `references/design-tokens.md` — full CSS/component vocabulary (risk chips, bubbles, diff rows, SVG flow diagrams).
-- `assets/template.html` — runnable starting point. Copy and modify; delete sections that don't apply.
+- `references/design-tokens.md` — full CSS/component vocabulary (risk chips, bubbles, diff rows, SVG flow diagrams). Read it before assembling the HTML — it has the full CSS and component markup you need to drop into the document's `<style>` and body.

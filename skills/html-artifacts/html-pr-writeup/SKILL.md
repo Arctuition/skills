@@ -73,4 +73,4 @@ Match the user's language. If the user wrote the request in Chinese, the HTML bo
 
 ## Reference
 
-See `references/design-tokens.md` for the full CSS/component vocabulary and `assets/template.html` for a runnable starting point you can fill in. The template is meant to be copied and modified, not loaded verbatim — delete sections you don't need.
+- `references/design-tokens.md` — full CSS/component vocabulary (eyebrow, TL;DR, before/after grid, file cards with risk tags, code blocks, TOC sidebar). Read it before assembling the HTML — it has the full CSS and component markup you need to drop into the document's `<style>` and body.

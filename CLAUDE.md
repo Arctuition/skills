@@ -12,8 +12,7 @@ Add a new bucket only when at least two skills genuinely share it.
 ```
 skills/<bucket>/<skill-name>/
 ├── SKILL.md           # required — YAML frontmatter + workflow
-├── references/        # optional — supporting docs the skill links into
-└── assets/            # optional — templates, e.g. starter HTML for html-artifacts
+└── references/        # optional — supporting docs the skill links into
 ```
 
 `<skill-name>` is kebab-case and matches the `name` in the frontmatter.
@@ -60,4 +59,4 @@ skills/html-artifacts/
 
 **To verify everything is in sync** (e.g., before pushing): `bash scripts/sync-shared.sh --check`. Exits non-zero on drift.
 
-**`assets/template.html` is not synced.** Each skill's template is hand-maintained because each skill assembles its own document type. If a token changes in `_shared/`, templates may temporarily show the old style — that's acceptable because templates are a starting scaffold; the LLM uses `references/design-tokens.md` as the canonical reference when generating final HTML.
+**No starter `template.html`.** Each skill's `SKILL.md` describes the section structure and component choices; `references/design-tokens.md` carries the canonical CSS and component markup. The LLM assembles the final HTML directly from those two — there's no per-skill scaffold file to drift against.
