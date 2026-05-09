@@ -25,12 +25,18 @@ Skills that operate on code and tickets.
 
 ### HTML Artifacts
 
-Skills that produce a single self-contained HTML file you can hand to a teammate. They share a visual vocabulary in [`references/design-tokens.md`](./skills/html-artifacts/html-module-map/references/design-tokens.md).
+Skills that produce a single self-contained HTML file you can hand to a teammate. They share a visual vocabulary in [`_shared/design-tokens.md`](./skills/html-artifacts/_shared/design-tokens.md), propagated into each skill via [`scripts/sync-shared.sh`](./scripts/sync-shared.sh).
+
+Specialized skills (use these when they fit):
 
 - **[html-module-map](./skills/html-artifacts/html-module-map/SKILL.md)** — Break down a module, feature, or workflow into an inline-SVG architecture diagram with the hot path highlighted, a key-files panel, a numbered callstack walkthrough, gotchas, and a glossary.
 - **[html-pr-review](./skills/html-artifacts/html-pr-review/SKILL.md)** — Code review companion for the reviewer: risk-coloured file map, annotated diff with margin notes and severity tags, call graph, and questions worth asking the author.
 - **[html-pr-writeup](./skills/html-artifacts/html-pr-writeup/SKILL.md)** — PR cover letter for the author: motivation, before/after behaviour, file-by-file tour, where to focus the review, test plan, and rollout.
 - **[html-thread-recap](./skills/html-artifacts/html-thread-recap/SKILL.md)** — Decision log of a Claude / ChatGPT / pairing thread for a teammate who wasn't in the room — questions explored, decisions and tradeoffs, dead ends, open questions, artifacts.
+
+Catch-all (used only when none of the specialized skills fit):
+
+- **[html-artifact](./skills/html-artifacts/html-artifact/SKILL.md)** — General single-file HTML for the long tail: status reports, incident timelines, slide decks, concept explainers, design comparisons, dashboards, prototypes. Picks one of five shapes (Report / Comparison / Explainer / Dashboard / Prototype) based on the request.
 
 ## Adding a Skill
 
