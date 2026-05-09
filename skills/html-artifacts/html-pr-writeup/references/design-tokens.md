@@ -30,7 +30,7 @@ The tokens map onto a meaning, not a color. `--clay` is "this needs attention", 
 ```css
 :root {
   --serif: ui-serif, Georgia, 'Times New Roman', serif;
-  --sans:  system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --sans:  system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --mono:  ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
 }
 ```
