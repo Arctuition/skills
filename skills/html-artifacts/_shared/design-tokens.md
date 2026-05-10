@@ -27,11 +27,15 @@ The whole point of producing an HTML artifact instead of markdown is that the re
   --gray-300: #D1CFC5;  /* borders */
   --gray-500: #87867F;  /* eyebrow, secondary text, mono labels */
   --gray-700: #3D3D3A;  /* body text */
+  --rule:        rgba(20,20,19,0.18);  /* semi-transparent hairline; works over any bg */
+  --rule-dashed: rgba(20,20,19,0.28);  /* paired with border-style: dashed */
   --white:    #FFFFFF;
 }
 ```
 
 The tokens map onto a meaning, not a color. `--clay` is "this needs attention / rejected", not "this is red". `--olive` is "you can move past this safely / chosen", not "this is green". When you tag risk levels, file diffs, decision options, status indicators, etc., reach for the meaning first and the color follows.
+
+`--rule` and `--rule-dashed` are hairline tokens, not palette colors. Use them instead of `--gray-300` whenever a border sits on a colored background (a callout, a dark slab, a tinted card) — the semi-transparent ink stays visible without clashing. `--rule-dashed` is slightly darker so dashed strokes read as cleanly as solid ones.
 
 ## Typography
 
@@ -61,6 +65,25 @@ The stacks above are arranged so:
 
 Don't "clean up" the stacks by dropping the Chinese entries thinking they're redundant. The generic `serif` / `sans-serif` keywords at the end do not guarantee a Chinese face that matches the family — on Windows, generic `serif` for Chinese can resolve to a default that clashes with the Latin face above it.
 
+### Inline italic-English emphasis
+
+Inside a sentence of Chinese prose, an English keyword (a function name, a library, a metric) is doing real work — let it carry visual weight. Tag it with `em.kw-en` and the italic serif treatment ties it to the document's accent and pulls the reader's eye without breaking the line.
+
+```html
+<p>第一次 <em class="kw-en">useEffect</em> 跑完之后，<em class="kw-en">SessionStore</em> 的 LRU 才会预热。</p>
+```
+
+```css
+em.kw-en {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--clay);
+}
+```
+
+Use sparingly — three or four per page, not every English term. If everything is emphasized, nothing is.
+
 ## Page shell
 
 ```css
@@ -72,8 +95,22 @@ body {
   padding: 56px 32px 120px;
   -webkit-font-smoothing: antialiased;
 }
-.page { max-width: 1040px; margin: 0 auto; }
+/* Subtle dotted-paper texture so the ivory reads as printed stock, not a screen.
+   Fixed-position stays put while the page scrolls; pointer-events:none keeps it inert. */
+body::before {
+  content: ""; position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(rgba(20,20,19,0.022) 1px, transparent 1px),
+    radial-gradient(rgba(20,20,19,0.018) 1px, transparent 1px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 2px;
+  opacity: 0.85;
+}
+.page { max-width: 1040px; margin: 0 auto; position: relative; z-index: 1; }
 ```
+
+The texture is the lightest possible "this is paper" cue — at full opacity it would distract; at 0.85 of two ~0.02 alpha radials it just kills the screen-glow flatness. Don't crank it up looking for a stronger effect; if you can see it on first glance, it's too loud.
 
 Optional sidebar layout for documents that have an in-this-page TOC or a "key files" panel:
 
@@ -131,7 +168,7 @@ For a thread recap, status report, or any non-PR artifact, swap the eyebrow text
 h1 {
   font-family: var(--serif);
   font-weight: 500;
-  font-size: 36px;
+  font-size: clamp(28px, 3.6vw, 44px);  /* same px on a 1440 monitor; better at the extremes */
   line-height: 1.15;
   color: var(--slate);
   letter-spacing: -0.01em;
@@ -144,6 +181,37 @@ h1 {
 .meta .add { color: var(--olive); }
 .meta .del { color: var(--clay); }
 ```
+
+### Stat row
+
+When the numbers are the point — "418 added / 190 removed / 9 files", "47 turns / 2h elapsed / 3 dead ends" — `.meta` chips read as a label list and the figures get lost. The stat-row pattern leans the other way: the italic serif numeral does the talking, the small mono caption does the explaining, a dashed hairline separates the row from the prose above it.
+
+```html
+<div class="stat-row">
+  <span><strong class="num">418</strong><span class="lbl">added</span></span>
+  <span><strong class="num">190</strong><span class="lbl">removed</span></span>
+  <span><strong class="num">9</strong><span class="lbl">files</span></span>
+</div>
+```
+
+```css
+.stat-row {
+  display: flex; gap: 28px; align-items: baseline;
+  padding-top: 14px; margin-top: 12px;
+  border-top: 1px dashed var(--rule-dashed);
+}
+.stat-row strong.num {
+  font-family: var(--serif); font-style: italic; font-weight: 600;
+  font-size: 26px; color: var(--clay); line-height: 1;
+}
+.stat-row .lbl {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--gray-500);
+  margin-left: 8px;
+}
+```
+
+Stick with `.meta .stat` chips when the items are mostly labels with the occasional number embedded (`branch notify-queue → main`, `author @priya`). Use `.stat-row` when the line exists *because of* the numbers.
 
 ### Prompt box (optional)
 
@@ -502,12 +570,48 @@ A single paragraph that orients the reader in 3–5 sentences. Lead with what wa
 }
 ```
 
+### Headline takeaway (dark callout)
+
+For the one line you'd want quoted in the team Slack — the takeaway that justifies the rest of the artifact. The inverted slate-on-ivory body plus the corner crop mark says "this is *the* point"; that's the whole job, so don't dilute it. At most one per artifact, and don't use it on the same page as `.tldr` — the two compete for the same role and turn into noise.
+
+```html
+<aside class="callout-dark">
+  <span class="cd-label">CORE TAKEAWAY</span>
+  <p>Moving SMTP off the request path was worth the loss of synchronous delivery confirmation.</p>
+</aside>
+```
+
+```css
+.callout-dark {
+  margin: 32px 0;
+  padding: 28px 32px;
+  background: var(--slate);
+  color: var(--ivory);
+  position: relative;
+}
+.callout-dark::before {  /* corner crop mark */
+  content: ""; position: absolute; top: 0; left: 0;
+  width: 28px; height: 28px;
+  border-top: 2px solid var(--clay);
+  border-left: 2px solid var(--clay);
+}
+.callout-dark .cd-label {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.20em; text-transform: uppercase;
+  color: var(--clay); display: block; margin-bottom: 12px;
+}
+.callout-dark p {
+  font-family: var(--serif); font-size: 19px; line-height: 1.45;
+  color: var(--ivory);
+}
+```
+
 ### Section headings
 
 ```css
 h2 {
   font-family: var(--serif); font-weight: 500;
-  font-size: 24px; color: var(--slate);
+  font-size: clamp(20px, 2.2vw, 26px); color: var(--slate);
   margin: 40px 0 16px;
   letter-spacing: -0.005em;
 }
@@ -699,6 +803,57 @@ For unresolved items: things that came up but weren't decided, follow-ups, ambig
 }
 ```
 
+### Principle list
+
+For numbered heuristics, takeaways, or guardrails — items that share a "rule, then category" shape. Three-column grid: mono number, serif principle, mono category tag. Hairline-separated, no card chrome — the typography itself does the work.
+
+```html
+<ol class="principle-list">
+  <li>
+    <span class="pn">01</span>
+    <span class="pt">Always enqueue per-recipient — don't try to "send all" from a single job.</span>
+    <span class="pl">RELIABILITY</span>
+  </li>
+  <li>
+    <span class="pn">02</span>
+    <span class="pt">Cap worker concurrency below the SMTP rate limit, not above it.</span>
+    <span class="pl">CAPACITY</span>
+  </li>
+  <li>
+    <span class="pn">03</span>
+    <span class="pt">Retry with backoff <em class="kw-en">and</em> jitter — fixed backoff thunders.</span>
+    <span class="pl">RETRY</span>
+  </li>
+</ol>
+```
+
+```css
+.principle-list { list-style: none; padding: 0; }
+.principle-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px; padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+}
+.principle-list li:last-child { border-bottom: none; }
+.principle-list .pn {
+  font-family: var(--mono); font-size: 13px;
+  color: var(--clay); padding-top: 2px;
+}
+.principle-list .pt {
+  font-family: var(--serif); font-size: 16px;
+  color: var(--slate); line-height: 1.55; font-weight: 500;
+}
+.principle-list .pl {
+  font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.20em; text-transform: uppercase;
+  color: var(--gray-500); padding-top: 4px;
+}
+```
+
+`.principle-list` and `.open-list` carry different signals: open-list says "unresolved, someone needs to do something"; principle-list says "settled — these are the rules we'd repeat next time." Don't conflate them by mixing pending items into a principle list.
+
 ### Reference badge
 
 For external links — Jira tickets, Sentry issues, GitHub PRs, design docs. The source label is what makes the badge readable at a glance.
@@ -828,6 +983,40 @@ For the rare moments where the exact wording from a source matters (a user const
   font-size: 14.5px; color: var(--slate); line-height: 1.55;
 }
 ```
+
+### Pullquote
+
+A heavier-weight cousin of `.excerpt`, for the line that turned the decision — the constraint that shaped the design, the user phrasing worth preserving verbatim. Top and bottom hairlines plus the accent bar before the quote tell the reader "this is load-bearing, not background."
+
+```html
+<blockquote class="pullquote">
+  <p class="quote">If we can't hit the 30-minute SLA, we have to redesign — not just hope retries fix it.</p>
+  <p class="attr">— user, turn 23</p>
+</blockquote>
+```
+
+```css
+.pullquote {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 22px 0; margin: 28px 0;
+}
+.pullquote .quote {
+  font-family: var(--serif); font-size: 20px; line-height: 1.5;
+  color: var(--slate); font-weight: 500;
+}
+.pullquote .quote::before {
+  content: ""; display: inline-block;
+  width: 20px; height: 2px; background: var(--clay);
+  vertical-align: middle; margin-right: 14px; margin-bottom: 6px;
+}
+.pullquote .attr {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--gray-500); margin-top: 10px;
+}
+```
+
+When in doubt, prefer `.excerpt` — it's quieter and won't crowd the surrounding prose. Reach for `.pullquote` when the line genuinely deserves the spotlight; one per artifact is usually enough.
 
 ## Anti-patterns
 
