@@ -27,15 +27,16 @@ The whole point of producing an HTML artifact instead of markdown is that the re
   --gray-300: #D1CFC5;  /* borders */
   --gray-500: #87867F;  /* eyebrow, secondary text, mono labels */
   --gray-700: #3D3D3A;  /* body text */
-  --rule:        rgba(20,20,19,0.18);  /* semi-transparent hairline; works over any bg */
+  --rule:        rgba(20,20,19,0.18);  /* semi-transparent ink hairline for ivory/oat/white surfaces */
   --rule-dashed: rgba(20,20,19,0.28);  /* paired with border-style: dashed */
+  --rule-light:  rgba(250,249,245,0.20);  /* semi-transparent ivory hairline for dark surfaces */
   --white:    #FFFFFF;
 }
 ```
 
 The tokens map onto a meaning, not a color. `--clay` is "this needs attention / rejected", not "this is red". `--olive` is "you can move past this safely / chosen", not "this is green". When you tag risk levels, file diffs, decision options, status indicators, etc., reach for the meaning first and the color follows.
 
-`--rule` and `--rule-dashed` are hairline tokens, not palette colors. Use them instead of `--gray-300` whenever a border sits on a colored background (a callout, a dark slab, a tinted card) — the semi-transparent ink stays visible without clashing. `--rule-dashed` is slightly darker so dashed strokes read as cleanly as solid ones.
+`--rule`, `--rule-dashed`, and `--rule-light` are hairline tokens, not palette colors. Reach for `--rule` (semi-transparent ink) instead of `--gray-300` when a border sits on a colored or tinted ivory surface — it stays legible without competing. `--rule-dashed` is slightly darker so dashed strokes read as cleanly as solid ones. `--rule-light` (semi-transparent ivory) is the inverse: use it for hairlines *on* a dark surface — inside `.callout-dark`, on a slate slab, anywhere `--rule` would disappear into the background.
 
 ## Typography
 
@@ -168,7 +169,7 @@ For a thread recap, status report, or any non-PR artifact, swap the eyebrow text
 h1 {
   font-family: var(--serif);
   font-weight: 500;
-  font-size: clamp(28px, 3.6vw, 44px);  /* same px on a 1440 monitor; better at the extremes */
+  font-size: clamp(28px, 2.5vw, 44px);  /* 36px on a 1440 monitor (the old fixed size); floor at narrow widths, mild scale-up past ~1760px */
   line-height: 1.15;
   color: var(--slate);
   letter-spacing: -0.01em;
@@ -611,7 +612,7 @@ For the one line you'd want quoted in the team Slack — the takeaway that justi
 ```css
 h2 {
   font-family: var(--serif); font-weight: 500;
-  font-size: clamp(20px, 2.2vw, 26px); color: var(--slate);
+  font-size: clamp(20px, 1.7vw, 28px); color: var(--slate);  /* ~24px on a 1440 monitor (the old fixed size) */
   margin: 40px 0 16px;
   letter-spacing: -0.005em;
 }
