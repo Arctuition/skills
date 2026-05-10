@@ -85,7 +85,7 @@ If you find yourself wanting a component that doesn't exist:
 
 ## Output
 
-Save as `<topic>-<shape>.html` in the user's outputs directory (e.g. `q2-roadmap-report.html`, `incident-2026-05-09-timeline.html`, `caching-strategies-comparison.html`) and surface a `computer://` link. Don't dump the HTML source into chat — the artifact is the deliverable.
+Save as `<topic>-<shape>.html` (e.g. `q2-roadmap-report.html`, `incident-2026-05-09-timeline.html`, `caching-strategies-comparison.html`) in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
 
 After saving, offer to (a) iterate on a specific section, (b) try a different shape, or (c) move on. Don't auto-share.
 

@@ -77,7 +77,7 @@ Use the tokens and components in `references/design-tokens.md`. Risk colours are
 
 ## Output
 
-Save as `pr-<number>-review.html` in the user's outputs directory and surface a `computer://` link. After saving, ask whether they want you to (a) draft the GitHub review comments based on this, (b) deepen any section, or (c) move on. Don't dump the HTML source into chat.
+Save as `pr-<number>-review.html` in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. After saving, ask whether they want you to (a) draft the GitHub review comments based on this, (b) deepen any section, or (c) move on. Don't dump the HTML source into chat.
 
 ## Output language
 
