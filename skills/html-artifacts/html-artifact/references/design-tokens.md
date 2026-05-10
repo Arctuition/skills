@@ -27,16 +27,14 @@ The whole point of producing an HTML artifact instead of markdown is that the re
   --gray-300: #D1CFC5;  /* borders */
   --gray-500: #87867F;  /* eyebrow, secondary text, mono labels */
   --gray-700: #3D3D3A;  /* body text */
-  --rule:        rgba(20,20,19,0.18);  /* semi-transparent ink hairline for ivory/oat/white surfaces */
-  --rule-dashed: rgba(20,20,19,0.28);  /* paired with border-style: dashed */
-  --rule-light:  rgba(250,249,245,0.20);  /* semi-transparent ivory hairline for dark surfaces */
+  --rule:     rgba(20,20,19,0.18);  /* semi-transparent ink hairline for ivory/oat/white surfaces */
   --white:    #FFFFFF;
 }
 ```
 
 The tokens map onto a meaning, not a color. `--clay` is "this needs attention / rejected", not "this is red". `--olive` is "you can move past this safely / chosen", not "this is green". When you tag risk levels, file diffs, decision options, status indicators, etc., reach for the meaning first and the color follows.
 
-`--rule`, `--rule-dashed`, and `--rule-light` are hairline tokens, not palette colors. Reach for `--rule` (semi-transparent ink) instead of `--gray-300` when a border sits on a colored or tinted ivory surface — it stays legible without competing. `--rule-dashed` is slightly darker so dashed strokes read as cleanly as solid ones. `--rule-light` (semi-transparent ivory) is the inverse: use it for hairlines *on* a dark surface — inside `.callout-dark`, on a slate slab, anywhere `--rule` would disappear into the background.
+`--rule` is a hairline token, not a palette color. Reach for it instead of `--gray-300` when a border sits on a tinted or colored ivory-side surface — the semi-transparent ink stays legible without clashing. Both solid and dashed strokes work at this alpha. The token is intentionally ink-side only: dark-surface components (e.g. `.callout-dark`) currently don't use inner hairlines, so an inverse "ivory-on-dark" token would be a documented orphan. Add one alongside the first component that actually consumes it.
 
 ## Typography
 
@@ -113,6 +111,11 @@ body::before {
 
 The texture is the lightest possible "this is paper" cue — at full opacity it would distract; at 0.85 of two ~0.02 alpha radials it just kills the screen-glow flatness. Don't crank it up looking for a stronger effect; if you can see it on first glance, it's too loud.
 
+Two side-effects worth knowing about:
+
+- **Stacking context**: the texture sits at `z-index: 0` (fixed) and `.page` sits at `z-index: 1` to layer above it. Anything that introduces its own stacking context later — a sticky TOC, a modal, a hover overlay — needs to opt in by setting `position: relative; z-index: 1` (or higher) on its positioned ancestor. Otherwise it can render *underneath* the texture and look broken.
+- **Print**: `position: fixed` backgrounds repeat on every printed page in some browsers. The artifact is built for screen reading, but if a recipient prints it, the dots may double up. Acceptable tradeoff; only revisit if the artifact starts being shared as PDF.
+
 Optional sidebar layout for documents that have an in-this-page TOC or a "key files" panel:
 
 ```css
@@ -182,37 +185,6 @@ h1 {
 .meta .add { color: var(--olive); }
 .meta .del { color: var(--clay); }
 ```
-
-### Stat row
-
-When the numbers are the point — "418 added / 190 removed / 9 files", "47 turns / 2h elapsed / 3 dead ends" — `.meta` chips read as a label list and the figures get lost. The stat-row pattern leans the other way: the italic serif numeral does the talking, the small mono caption does the explaining, a dashed hairline separates the row from the prose above it.
-
-```html
-<div class="stat-row">
-  <span><strong class="num">418</strong><span class="lbl">added</span></span>
-  <span><strong class="num">190</strong><span class="lbl">removed</span></span>
-  <span><strong class="num">9</strong><span class="lbl">files</span></span>
-</div>
-```
-
-```css
-.stat-row {
-  display: flex; gap: 28px; align-items: baseline;
-  padding-top: 14px; margin-top: 12px;
-  border-top: 1px dashed var(--rule-dashed);
-}
-.stat-row strong.num {
-  font-family: var(--serif); font-style: italic; font-weight: 600;
-  font-size: 26px; color: var(--clay); line-height: 1;
-}
-.stat-row .lbl {
-  font-family: var(--mono); font-size: 11px;
-  letter-spacing: 0.18em; text-transform: uppercase; color: var(--gray-500);
-  margin-left: 8px;
-}
-```
-
-Stick with `.meta .stat` chips when the items are mostly labels with the occasional number embedded (`branch notify-queue → main`, `author @priya`). Use `.stat-row` when the line exists *because of* the numbers.
 
 ### Prompt box (optional)
 
@@ -822,7 +794,7 @@ For numbered heuristics, takeaways, or guardrails — items that share a "rule, 
   </li>
   <li>
     <span class="pn">03</span>
-    <span class="pt">Retry with backoff <em class="kw-en">and</em> jitter — fixed backoff thunders.</span>
+    <span class="pt">Use <em class="kw-en">exponential backoff</em> with jitter — fixed delay leads to a thundering herd.</span>
     <span class="pl">RETRY</span>
   </li>
 </ol>
