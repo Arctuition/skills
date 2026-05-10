@@ -12,29 +12,57 @@ These tokens are the shared vocabulary used by every skill under `skills/html-ar
 
 ## Why these tokens exist
 
-The whole point of producing an HTML artifact instead of markdown is that the reader actually reads it. That happens when the document looks like something a human designed, not something an LLM auto-generated. These tokens are tuned to read as a "real" document — calm color palette, generous whitespace, serif headings paired with mono callouts. Resist the urge to add gradients, drop shadows, neon accents, or emoji.
+The whole point of producing an HTML artifact instead of markdown is that the reader actually reads it. That happens when the document looks like something a human designed, not something an LLM auto-generated. These tokens are tuned to read as a "real" document — warm paper palette, generous whitespace, serif headings paired with mono callouts, and a whisper of elevation that makes cards feel like they're resting on the page rather than carved out of it. Resist the urge to add gradients, neon accents, glows, or emoji.
 
 ## Color palette
 
 ```css
 :root {
+  /* surfaces */
   --ivory:    #FAF9F5;  /* page background */
-  --slate:    #141413;  /* primary heading text */
-  --clay:     #D97757;  /* danger / needs-attention / removed-line / rejected option */
-  --oat:      #E3DACC;  /* medium / worth-a-look / muted callout bg / dead-end bg */
-  --olive:    #788C5D;  /* safe / added-line / chosen option / success */
-  --gray-150: #F0EEE6;  /* prompt box bg, code bg */
-  --gray-300: #D1CFC5;  /* borders */
-  --gray-500: #87867F;  /* eyebrow, secondary text, mono labels */
-  --gray-700: #3D3D3A;  /* body text */
-  --rule:     rgba(20,20,19,0.18);  /* semi-transparent ink hairline for ivory/oat/white surfaces */
-  --white:    #FFFFFF;
+  --paper:    #FDFCF7;  /* elevated card surface — warm off-white, never stark */
+  --white:    #FFFFFF;  /* reserved for true whites (chips, dot fills) */
+
+  /* ink */
+  --slate:    #1A1916;  /* primary heading text */
+  --gray-700: #45433E;  /* body text */
+  --gray-500: #8C8A82;  /* eyebrow, secondary text, mono labels */
+  --gray-300: #D5D2C7;  /* solid borders on ivory */
+  --gray-150: #F1EFE8;  /* prompt box bg, code bg */
+
+  /* accents — semantic, not decorative */
+  --clay:     #C97559;  /* danger / needs-attention / removed-line / rejected option */
+  --olive:    #819968;  /* safe / added-line / chosen option / success */
+  --oat:      #E5DCCD;  /* medium / worth-a-look / muted callout bg / dead-end bg */
+
+  /* tints — pre-mixed accents for backgrounds and rails */
+  --clay-tint:   rgba(201,117,89,0.10);
+  --clay-rail:   rgba(201,117,89,0.55);
+  --olive-tint:  rgba(129,153,104,0.10);
+  --olive-rail:  rgba(129,153,104,0.55);
+
+  /* hairline — semi-transparent ink for tinted/coloured surfaces */
+  --rule:     rgba(26,25,22,0.12);
+
+  /* elevation — barely-there lift, never glassmorphism */
+  --shadow-sm: 0 1px 2px rgba(26,25,22,0.04);
+  --shadow-md: 0 1px 2px rgba(26,25,22,0.04), 0 6px 18px -10px rgba(26,25,22,0.08);
+
+  /* radii — soft, modern corners */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
 }
 ```
 
 The tokens map onto a meaning, not a color. `--clay` is "this needs attention / rejected", not "this is red". `--olive` is "you can move past this safely / chosen", not "this is green". When you tag risk levels, file diffs, decision options, status indicators, etc., reach for the meaning first and the color follows.
 
-`--rule` is a hairline token, not a palette color. Reach for it instead of `--gray-300` when a border sits on a tinted or colored ivory-side surface — the semi-transparent ink stays legible without clashing. Both solid and dashed strokes work at this alpha. The token is intentionally ink-side only: dark-surface components (e.g. `.callout-dark`) currently don't use inner hairlines, so an inverse "ivory-on-dark" token would be a documented orphan. Add one alongside the first component that actually consumes it.
+`--paper` is the default surface for elevated cards (decision, panel, ba-card, ref-badge, diff). It's a warm off-white — pure `--white` reads as harsh on the ivory page. Reserve `--white` for chips and dot fills where contrast against `--paper` is needed.
+
+`--rule` is a hairline token, not a palette color. Reach for it instead of `--gray-300` when a border sits on a tinted or colored ivory-side surface — the semi-transparent ink stays legible without clashing. It's also the default for card borders now: it reads softer than the solid `--gray-300` and matches the document's calm tone. Both solid and dashed strokes work at this alpha. The token is intentionally ink-side only: dark-surface components (e.g. `.callout-dark`) currently don't use inner hairlines, so an inverse "ivory-on-dark" token would be a documented orphan. Add one alongside the first component that actually consumes it.
+
+`--shadow-sm` and `--shadow-md` are the only elevation allowed. They're tuned to be almost imperceptible at first glance — just enough to lift a card a millimetre off the page. Don't reach for stronger shadows; if a component needs more presence, the typography or accent rail should carry that weight, not depth.
 
 ## Typography
 
@@ -90,9 +118,11 @@ body {
   font-family: var(--sans);
   background: var(--ivory);
   color: var(--gray-700);
-  line-height: 1.55;
-  padding: 56px 32px 120px;
+  font-size: 15px;
+  line-height: 1.62;
+  padding: 64px 32px 128px;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 /* Subtle dotted-paper texture so the ivory reads as printed stock, not a screen.
    Fixed-position stays put while the page scrolls; pointer-events:none keeps it inert. */
@@ -100,13 +130,16 @@ body::before {
   content: ""; position: fixed; inset: 0;
   pointer-events: none; z-index: 0;
   background-image:
-    radial-gradient(rgba(20,20,19,0.022) 1px, transparent 1px),
-    radial-gradient(rgba(20,20,19,0.018) 1px, transparent 1px);
+    radial-gradient(rgba(26,25,22,0.020) 1px, transparent 1px),
+    radial-gradient(rgba(26,25,22,0.016) 1px, transparent 1px);
   background-size: 3px 3px, 7px 7px;
   background-position: 0 0, 1px 2px;
   opacity: 0.85;
 }
 .page { max-width: 1040px; margin: 0 auto; position: relative; z-index: 1; }
+
+/* Smooth interaction targets — modern micro-feedback without animation noise */
+a, .chip, .ref-badge, .toc a { transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
 ```
 
 The texture is the lightest possible "this is paper" cue — at full opacity it would distract; at 0.85 of two ~0.02 alpha radials it just kills the screen-glow flatness. Don't crank it up looking for a stronger effect; if you can see it on first glance, it's too loud.
@@ -200,9 +233,9 @@ Shows the user's original ask so the document is reproducible. Keep it short.
 ```css
 .prompt-box {
   background: var(--gray-150);
-  border: 1.5px solid var(--gray-300);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 18px 22px;
   font-size: 14.5px;
 }
 .prompt-box .label {
@@ -245,20 +278,24 @@ A horizontal row of clickable chips that jump to sections below. Three common us
 .risk-map, .topic-chips { display: flex; flex-wrap: wrap; gap: 10px; }
 .chip {
   display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 12px; border-radius: 999px;
+  padding: 7px 14px; border-radius: 999px;
   font-family: var(--mono); font-size: 12.5px; text-decoration: none;
-  border: 1px solid var(--gray-300); color: var(--gray-700);
-  background: var(--white);
+  border: 1px solid var(--rule); color: var(--gray-700);
+  background: var(--paper);
 }
-.chip:hover { border-color: var(--gray-500); }
+.chip:hover {
+  border-color: var(--gray-500);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
 .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-500); }
 
 /* Risk variants */
-.chip.safe       { background: rgba(120,140,93,0.10); border-color: rgba(120,140,93,0.45); }
+.chip.safe       { background: var(--olive-tint); border-color: var(--olive-rail); }
 .chip.safe .dot  { background: var(--olive); }
-.chip.medium     { background: var(--oat); }
+.chip.medium     { background: var(--oat); border-color: rgba(168,153,104,0.45); }
 .chip.medium .dot{ background: #A89968; }
-.chip.attention  { background: rgba(217,119,87,0.12); border-color: rgba(217,119,87,0.55); }
+.chip.attention  { background: var(--clay-tint); border-color: var(--clay-rail); }
 .chip.attention .dot { background: var(--clay); }
 
 .legend {
@@ -286,8 +323,8 @@ Customize the label (`IN THIS PR` / `IN THIS RECAP` / `IN THIS REPORT` / etc.) a
 ```css
 .toc {
   position: sticky; top: 32px;
-  border-left: 1px solid var(--gray-300);
-  padding-left: 18px;
+  border-left: 1px solid var(--rule);
+  padding-left: 20px;
   font-size: 13px;
 }
 .toc-label {
@@ -327,10 +364,10 @@ Optional caption above a code block:
 ```css
 .code {
   background: var(--gray-150);
-  border: 1px solid var(--gray-300);
-  border-radius: 8px;
-  padding: 14px 16px;
-  font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
   overflow-x: auto;
   white-space: pre;
 }
@@ -367,8 +404,9 @@ Bubble severities:
 
 ```css
 .diff {
-  border: 1px solid var(--gray-300); border-radius: 8px;
-  background: var(--white);
+  border: 1px solid var(--rule); border-radius: var(--radius-md);
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
   margin: 12px 0;
 }
@@ -380,15 +418,15 @@ Bubble severities:
 .diff-row .ln  { color: var(--gray-500); text-align: right; padding-right: 8px; }
 .diff-row .mark{ color: var(--gray-500); text-align: center; }
 .diff-row pre  { padding: 0 12px; white-space: pre-wrap; }
-.diff-row.add  { background: rgba(120,140,93,0.10); }
+.diff-row.add  { background: var(--olive-tint); }
 .diff-row.add .mark, .diff-row.add pre { color: var(--olive); }
-.diff-row.del  { background: rgba(217,119,87,0.10); }
+.diff-row.del  { background: var(--clay-tint); }
 .diff-row.del .mark, .diff-row.del pre { color: var(--clay); }
 
 .bubble {
-  margin: 8px 14px 12px 60px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  margin: 10px 14px 14px 60px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
   background: var(--gray-150);
   border-left: 3px solid var(--gray-500);
 }
@@ -397,11 +435,11 @@ Bubble severities:
   letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--gray-500); margin-right: 8px;
 }
-.bubble.blocking { background: rgba(217,119,87,0.10); border-color: var(--clay); }
+.bubble.blocking { background: var(--clay-tint); border-color: var(--clay); }
 .bubble.blocking .label { color: var(--clay); }
 .bubble.question { background: var(--gray-150); border-color: var(--slate); }
 .bubble.question .label { color: var(--slate); }
-.bubble.nit      { background: var(--white); border-color: var(--gray-300); }
+.bubble.nit      { background: var(--paper); border-color: var(--rule); }
 .bubble p { font-size: 14px; color: var(--gray-700); }
 ```
 
@@ -429,13 +467,15 @@ For any "previously this happened, now this happens" comparison.
 ```
 
 ```css
-.ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .ba-card {
-  border: 1px solid var(--gray-300);
-  border-radius: 10px; padding: 18px 20px;
-  background: var(--white);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  padding: 22px 24px;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
 }
-.ba-card.after { border-color: rgba(120,140,93,0.55); }
+.ba-card.after { border-color: var(--olive-rail); }
 .ba-label {
   font-family: var(--mono); font-size: 11px;
   text-transform: uppercase; letter-spacing: 0.06em;
@@ -477,11 +517,11 @@ The whole point of HTML over markdown is being able to draw. Inline SVG with sim
 ```
 
 ```css
-.flow .box  { fill: #fff; stroke: var(--gray-300); stroke-width: 1.5; }
-.flow .box.hot { fill: rgba(217,119,87,0.10); stroke: var(--clay); }
+.flow .box  { fill: #FDFCF7; stroke: rgba(26,25,22,0.14); stroke-width: 1.25; }
+.flow .box.hot { fill: rgba(201,117,89,0.10); stroke: var(--clay); }
 .flow text { font-family: var(--sans); font-size: 13px; fill: var(--slate); }
 .flow .sub { font-family: var(--mono); font-size: 11px; fill: var(--gray-500); }
-.flow .arrow { stroke: var(--gray-500); stroke-width: 1.5; fill: none; }
+.flow .arrow { stroke: var(--gray-500); stroke-width: 1.25; fill: none; }
 ```
 
 Use `.box.hot` to highlight the "this is the interesting node" — the entry point, the bug site, the new component.
@@ -505,12 +545,13 @@ For walking a reader through code in execution order. Numbered badge + filename 
 ```
 
 ```css
-.step { display: grid; grid-template-columns: 32px 1fr; gap: 16px; margin-bottom: 28px; }
+.step { display: grid; grid-template-columns: 32px 1fr; gap: 18px; margin-bottom: 28px; }
 .badge {
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--gray-150); border: 1px solid var(--gray-300);
+  background: var(--paper); border: 1px solid var(--rule);
   display: grid; place-items: center;
   font-family: var(--mono); font-size: 13px; color: var(--gray-700);
+  box-shadow: var(--shadow-sm);
 }
 .step-loc { font-family: var(--mono); font-size: 13px; color: var(--gray-700); margin-bottom: 6px; }
 .step-loc .range { color: var(--gray-500); }
@@ -534,12 +575,12 @@ A single paragraph that orients the reader in 3–5 sentences. Lead with what wa
 .tldr {
   background: var(--gray-150);
   border-left: 3px solid var(--clay);
-  border-radius: 0 8px 8px 0;
-  padding: 16px 22px;
+  border-radius: 4px var(--radius-md) var(--radius-md) 4px;
+  padding: 20px 24px;
   margin: 20px 0 36px;
 }
 .tldr p {
-  font-size: 15.5px; line-height: 1.6; color: var(--slate);
+  font-size: 16px; line-height: 1.62; color: var(--slate);
 }
 ```
 
@@ -556,17 +597,20 @@ For the one line you'd want quoted in the team Slack — the takeaway that justi
 
 ```css
 .callout-dark {
-  margin: 32px 0;
-  padding: 28px 32px;
+  margin: 36px 0;
+  padding: 32px 36px;
   background: var(--slate);
   color: var(--ivory);
+  border-radius: var(--radius-md);
   position: relative;
+  box-shadow: var(--shadow-md);
 }
 .callout-dark::before {  /* corner crop mark */
-  content: ""; position: absolute; top: 0; left: 0;
-  width: 28px; height: 28px;
+  content: ""; position: absolute; top: 14px; left: 14px;
+  width: 24px; height: 24px;
   border-top: 2px solid var(--clay);
   border-left: 2px solid var(--clay);
+  border-top-left-radius: 4px;
 }
 .callout-dark .cd-label {
   font-family: var(--mono); font-size: 11px;
@@ -574,8 +618,8 @@ For the one line you'd want quoted in the team Slack — the takeaway that justi
   color: var(--clay); display: block; margin-bottom: 12px;
 }
 .callout-dark p {
-  font-family: var(--serif); font-size: 19px; line-height: 1.45;
-  color: var(--ivory);
+  font-family: var(--serif); font-size: 20px; line-height: 1.5;
+  color: var(--ivory); font-weight: 400;
 }
 ```
 
@@ -631,10 +675,11 @@ For artifacts that capture decisions (thread recaps, design docs, post-mortems, 
 
 ```css
 .decision {
-  border: 1px solid var(--gray-300);
-  border-radius: 12px;
-  background: var(--white);
-  padding: 22px 24px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+  padding: 26px 28px;
   margin-bottom: 24px;
 }
 .decision-head { margin-bottom: 14px; }
@@ -653,10 +698,10 @@ For artifacts that capture decisions (thread recaps, design docs, post-mortems, 
 .options { list-style: none; margin: 12px 0 16px; padding: 0; }
 .opt {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 14px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  grid-template-columns: 96px 1fr;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
   margin-bottom: 6px;
   align-items: baseline;
 }
@@ -664,17 +709,17 @@ For artifacts that capture decisions (thread recaps, design docs, post-mortems, 
 .opt-note { display: block; color: var(--gray-700); font-size: 14px; margin-top: 2px; grid-column: 2; }
 .opt .marker {
   font-family: var(--mono); font-size: 10.5px;
-  letter-spacing: 0.08em; padding: 3px 8px;
+  letter-spacing: 0.08em; padding: 3px 10px;
   border-radius: 999px; text-align: center;
   align-self: center;
 }
-.opt.chosen { background: rgba(120,140,93,0.10); }
+.opt.chosen { background: var(--olive-tint); }
 .opt.chosen .marker {
-  background: var(--olive); color: var(--white);
+  background: var(--olive); color: var(--ivory);
 }
 .opt.rejected .marker {
-  background: var(--white); color: var(--gray-500);
-  border: 1px solid var(--gray-300);
+  background: var(--paper); color: var(--gray-500);
+  border: 1px solid var(--rule);
 }
 .opt.rejected strong { color: var(--gray-700); }
 
@@ -714,14 +759,14 @@ For attempts that didn't work — abandoned approaches, failed hypotheses, refac
 .dead-end {
   background: var(--oat);
   border-left: 3px solid #B8AC92;
-  border-radius: 0 8px 8px 0;
-  padding: 14px 18px;
-  margin-bottom: 12px;
+  border-radius: 4px var(--radius-md) var(--radius-md) 4px;
+  padding: 16px 20px;
+  margin-bottom: 14px;
 }
 .de-label {
   font-family: var(--mono); font-size: 10.5px;
   letter-spacing: 0.08em; color: var(--gray-700);
-  background: var(--white); padding: 2px 8px; border-radius: 999px;
+  background: var(--paper); padding: 2px 10px; border-radius: 999px;
   display: inline-block; margin-bottom: 8px;
 }
 .de-what {
@@ -758,16 +803,16 @@ For unresolved items: things that came up but weren't decided, follow-ups, ambig
 ```css
 .open-list { list-style: none; }
 .open-list li {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--gray-300);
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--rule);
   font-size: 14.5px;
 }
 .open-list li:last-child { border-bottom: none; }
 .q-tag {
   font-family: var(--mono); font-size: 10.5px;
   letter-spacing: 0.08em; color: var(--clay);
-  background: rgba(217,119,87,0.10);
-  padding: 2px 8px; border-radius: 999px;
+  background: var(--clay-tint);
+  padding: 3px 10px; border-radius: 999px;
   margin-right: 10px;
 }
 .q-owner {
@@ -805,7 +850,7 @@ For numbered heuristics, takeaways, or guardrails — items that share a "rule, 
 .principle-list li {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 24px; padding: 16px 0;
+  gap: 28px; padding: 20px 0;
   border-bottom: 1px solid var(--rule);
   align-items: start;
 }
@@ -859,18 +904,22 @@ For external links — Jira tickets, Sentry issues, GitHub PRs, design docs. The
 
 ```css
 .ref-list { list-style: none; }
-.ref-list li { margin-bottom: 8px; }
+.ref-list li { margin-bottom: 10px; }
 .ref-badge {
-  display: inline-flex; align-items: baseline; gap: 12px;
-  padding: 8px 14px;
-  border: 1px solid var(--gray-300);
-  border-radius: 8px;
-  background: var(--white);
+  display: inline-flex; align-items: baseline; gap: 14px;
+  padding: 10px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
   text-decoration: none;
   font-size: 14px;
   color: var(--gray-700);
 }
-.ref-badge:hover { border-color: var(--gray-500); }
+.ref-badge:hover {
+  border-color: var(--gray-500);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
 .ref-badge .src {
   font-family: var(--mono); font-size: 10.5px;
   letter-spacing: 0.08em; text-transform: uppercase;
@@ -911,12 +960,13 @@ A right-sidebar `aside` for short reference material — file lists, gotchas, su
 
 ```css
 .panel {
-  background: var(--white); border: 1px solid var(--gray-300);
-  border-radius: 10px; padding: 18px 20px;
+  background: var(--paper); border: 1px solid var(--rule);
+  border-radius: var(--radius-md); padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
 }
 .panel.callout {
-  background: rgba(217,119,87,0.06);
-  border-color: rgba(217,119,87,0.45);
+  background: rgba(201,117,89,0.06);
+  border-color: var(--clay-rail);
 }
 .panel-label {
   font-family: var(--mono); font-size: 11px;
@@ -941,10 +991,11 @@ For the rare moments where the exact wording from a source matters (a user const
 
 ```css
 .excerpt {
-  border-left: 3px solid var(--gray-300);
-  padding: 8px 16px;
-  margin: 14px 0;
-  background: var(--white);
+  border-left: 3px solid var(--rule);
+  padding: 10px 18px;
+  margin: 16px 0;
+  background: var(--paper);
+  border-radius: 4px var(--radius-sm) var(--radius-sm) 4px;
 }
 .ex-label {
   font-family: var(--mono); font-size: 11px;
@@ -995,8 +1046,8 @@ When in doubt, prefer `.excerpt` — it's quieter and won't crowd the surroundin
 
 - Do not add a logo, favicon, or "Generated by Claude" footer. The artifact stands on its own.
 - Do not use emoji as iconography. The mono labels and color dots already do that job and look more professional.
-- Do not add gradients, glows, or drop shadows. The look is flat-paper, not glassmorphism.
-- Do not use a dark theme by default. The ivory background is the look.
+- Do not add gradients, neon glows, blurred glassmorphism, or heavy drop shadows. The provided `--shadow-sm` / `--shadow-md` tokens are the only allowed elevation — they're tuned to read as "paper resting on paper", not "card floating in space". If you want more presence, lean on typography or the accent rail, not depth.
+- Do not use a dark theme by default. The ivory background is the look. The `.callout-dark` block is the one exception, used at most once per artifact.
 - Do not add JavaScript libraries. A small inline `<script>` for click-to-highlight is fine; anything bigger is a smell.
 - Do not bury the lede behind hero illustrations or animations. The reader is here for the content.
 - Do not paste an entire transcript, log, or PR diff verbatim. The artifact synthesizes; the reader can chase the source if they need it.
