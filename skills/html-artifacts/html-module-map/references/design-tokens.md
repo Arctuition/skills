@@ -37,15 +37,29 @@ The tokens map onto a meaning, not a color. `--clay` is "this needs attention / 
 
 ```css
 :root {
-  --serif: ui-serif, Georgia, 'Times New Roman', serif;
-  --sans:  system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --serif: ui-serif, Georgia, 'Times New Roman',
+           'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', STSong, SimSun, serif;
+  --sans:  system-ui, -apple-system, 'Segoe UI', Roboto,
+           'PingFang SC', 'Source Han Sans SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
   --mono:  ui-monospace, 'SF Mono', Menlo, Monaco, monospace;
 }
 ```
 
 - Serif for `h1`/`h2` — gives the document weight and signals "this was written for me to read"
-- Sans for body — keeps line length comfortable, with PingFang SC / Microsoft YaHei as Chinese fallback
+- Sans for body — keeps line length comfortable
 - Mono for filenames, code, eyebrows, small status labels — anywhere you want "this is a fact, not prose"
+
+### CJK pairing — keep "same family" alignment
+
+CSS picks fonts per-glyph from the stack: Latin characters match the English fonts at the front, CJK characters fall through to the Chinese fonts further down. The order matters: **never let a serif heading fall back to a sans Chinese font, or vice versa** — that produces the "西装配运动鞋" (suit + sneakers) mismatch where English Georgia in a heading sits next to Chinese 黑体 (a sans face).
+
+The stacks above are arranged so:
+
+- **`--serif`** pairs English serifs (ui-serif / Georgia) with Chinese serifs (Source Han Serif SC → Songti SC → SimSun). Source Han Serif and Noto Serif SC are the highest-quality cross-platform pair; Songti SC ships preinstalled on macOS, SimSun on Windows.
+- **`--sans`** pairs English sans (system-ui / Segoe UI / Roboto) with Chinese sans (PingFang SC on macOS → Source Han Sans / Noto Sans → Microsoft YaHei on Windows).
+- **`--mono`** is identifier-only (filenames, code), so no CJK fallback is needed — if Chinese ever appears inside a `<code>` block, it'll fall through to the body's sans face.
+
+Don't "clean up" the stacks by dropping the Chinese entries thinking they're redundant. The generic `serif` / `sans-serif` keywords at the end do not guarantee a Chinese face that matches the family — on Windows, generic `serif` for Chinese can resolve to a default that clashes with the Latin face above it.
 
 ## Page shell
 
