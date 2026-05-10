@@ -131,6 +131,12 @@ body {
 
 /* Smooth interaction targets — modern micro-feedback without animation noise */
 a, .chip, .ref-badge, .toc a, a.card, .card { transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease; }
+
+/* Long URLs, query strings, deep paths inside <code> have no natural break
+   opportunities and overflow narrow containers (panels, table cells). Allow
+   the browser to break anywhere as a last resort — readability beats word
+   integrity for identifiers and paths. */
+code { overflow-wrap: anywhere; word-break: break-word; }
 ```
 
 **No paper texture.** Earlier iterations of this file shipped a `body::before` dotted-paper background. We've removed it — the editorial reference our skills are derived from runs flat ivory, and on dense pages the texture competed with the typography for attention. If a future artifact genuinely needs the printed-stock cue (a zine, a poster), opt in locally; don't put it in the global shell.
@@ -533,6 +539,16 @@ The whole point of HTML over markdown is being able to draw. Inline SVG with sim
 ```
 
 Use `.box.hot` to highlight the "this is the interesting node" — the entry point, the bug site, the new component.
+
+**Layout discipline** — these are hard rules, not soft suggestions. The cost of breaking them is "the diagram gets ignored."
+
+- **Hard cap: 7 nodes per diagram.** If you have 9 boxes, split into two diagrams (e.g. *shell + page composition* and *page + data layer*) and let each one tell a single story. A 12-box diagram with arrows across the whole canvas reads as decoration; the reader scrolls past it.
+- **No crossing arrows.** If two arrows have to cross, the layout is wrong — move boxes until they don't. Crossings make the eye lose the path; the explainer stops explaining.
+- **No labels on top of boxes.** Edge labels (`.edge-label`) must sit in *empty space* between nodes, not overlap a `rect`. Reserve a label-clear strip — usually 14–18px above the line midpoint — and check by eye.
+- **Snap arrows to box edges, not to box centers.** Lines that pierce into the middle of a node read as "this arrow ends inside the box," which is meaningless. Compute the line endpoint to land on the rect's perimeter (right edge x = `box.x + box.width`, etc.).
+- **Group with `<rect class="group">` when nodes share a context.** Three loose boxes labelled "Shell", "Page", "Data" beat thirteen boxes drifting on the canvas. The group rectangle uses `stroke-dasharray: 3 4`, no fill, with a mono `.group-label` in the top-left corner.
+- **Edge labels describe the cargo, not the verb.** "session_id" beats "passes session"; "Stripe webhook" beats "calls stripe"; empty arrow > arrow with the label "calls".
+- **Don't draw an arrow back to its source.** Loops in module diagrams are almost always lies — the reader can't tell what the loop means. If A calls B and B calls A, draw two arrows between two columns of A and B (one per direction); don't curl an arrow back to itself.
 
 ### Callstack walkthrough
 
@@ -1034,9 +1050,74 @@ A right-sidebar `aside` for short reference material — file lists, gotchas, su
   color: var(--gray-500); margin-bottom: 10px;
 }
 .kf { margin-bottom: 12px; }
-.kf code { font-family: var(--mono); font-size: 13px; color: var(--slate); }
-.kf p { font-size: 13px; margin-top: 2px; color: var(--gray-700); }
+.kf code {
+  font-family: var(--mono); font-size: 13px; color: var(--slate);
+  display: block;
+  overflow-wrap: anywhere;            /* long URLs / query strings must wrap inside the 240px panel */
+  word-break: break-word;
+  line-height: 1.45;
+}
+.kf p { font-size: 13px; margin-top: 4px; color: var(--gray-700); line-height: 1.55; }
 ```
+
+### File index (main column "key files" list)
+
+For listings that live in the **wide main column** rather than the 240px sidebar — typically a "where to make changes" / "怎么找回自己写的东西" / "key files in this module" section. Filename, optional line count chip, and a description, separated by hairlines.
+
+`.kf` (above) was sized for a 240px sidebar; reusing it in the main column makes the filename `display: block` swallow the whole row, leaves any "· 864 lines" suffix dangling onto its own line, and pushes the description further down the cascade. **Use `.file-index` whenever the list is part of the body content; reserve `.kf` for the sidebar `aside.panel`.**
+
+```html
+<ul class="file-index">
+  <li>
+    <code class="path">components/product/category-product-view.tsx</code>
+    <span class="lines">864 行</span>
+    <p>页面外壳、URL state、列表态、tab 切换、library 切换。要改"切 tab 时丢不丢搜索词"这种事去这里。</p>
+  </li>
+  <li>
+    <code class="path">components/product/product-management.tsx</code>
+    <span class="lines">2159 行</span>
+    <p>主面板。所有产品的展示、搜索、筛选、排序、批量操作、产品 form 入口、侧栏面板，全在这里。<strong>是模块里最大的单文件。</strong></p>
+  </li>
+  <li>
+    <code class="path">components/product-bundle/*</code>
+    <p>整套 bundle UI：列表 (<code>Bundles.tsx</code>)、编辑面板 (<code>bundle-editor-panel.tsx</code>)、规则编辑、option set。</p>
+  </li>
+</ul>
+```
+
+```css
+.file-index { list-style: none; padding: 0; margin: 8px 0; }
+.file-index > li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.file-index > li:last-child { border-bottom: none; }
+
+.file-index .path {
+  font-family: var(--mono); font-size: 13.5px; color: var(--slate);
+  overflow-wrap: anywhere; word-break: break-word;     /* long paths wrap mid-segment instead of overflowing */
+  margin-right: 10px;
+}
+.file-index .lines {                              /* small pill: "864 行", "lazy", "362 lines" */
+  font-family: var(--mono); font-size: 11px;
+  color: var(--gray-500);
+  background: var(--gray-150);
+  padding: 2px 9px; border-radius: 999px;
+  white-space: nowrap;                            /* keep the chip on one line even when path wraps */
+  vertical-align: 1px;
+}
+.file-index p {
+  font-size: 14px; color: var(--gray-700);
+  margin: 6px 0 0; line-height: 1.55;
+}
+.file-index p code {                              /* inline filenames inside descriptions stay quiet */
+  font-size: 12.5px; color: var(--gray-700);
+}
+```
+
+The `.lines` pill is *optional*. Leave it out for files where line count isn't the headline (`api.ts` · 362 行 — fine; `components/product-bundle/*` — drop it). The pill should answer "is this file a small thing or a beast?" — if the answer doesn't matter, omit it.
+
+For descriptions, prefer a complete sentence that tells the reader what kind of change belongs here ("改'分类列表 UI'改这里"), not just a label ("分类列表"). The reader is scanning for "where do I go" — direct them.
 
 ### Inline excerpt block
 

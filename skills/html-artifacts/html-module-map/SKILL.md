@@ -33,7 +33,7 @@ Adapt to the subject; this is a default.
 1. **Header** — eyebrow (`<repo or product> · architecture note`), `h1` naming what this document explains (e.g. "How authentication flows through birchline/web"), one-paragraph summary that names the trust boundary or the invariant the system protects.
 2. **Architecture diagram** — inline SVG, boxes and arrows, hot-path node coloured `--clay`. Don't draw every box; draw the ones that matter to the explanation.
 3. **Callstack walkthrough** — numbered steps. Each step has a file:range (or actor name for workflows), a paragraph that explains what happens there in execution order, and a collapsible source snippet for code modules. This is the heart of the document.
-4. **Side panel: Key files / Key actors** — mono filenames or actor names with one-line descriptions. The reader uses this as their map back into the codebase.
+4. **Side panel: Key files / Key actors** — mono filenames or actor names with one-line descriptions. The reader uses this as their map back into the codebase. **Choose the right component for location**: the sidebar `aside.panel` uses `.kf` (compact, narrow); the main-column "where to make changes" / "怎么找回自己写的东西" section uses `.file-index` (3-column grid with optional line-count chip). Don't use `.kf` in the main column — `display: block` on the filename makes the row stack badly when the column is wider than ~280px.
 5. **Side panel: Gotchas** — colour-callout box listing the things that surprise people. One sentence each.
 6. **Optional: Sequence diagram** — for time-ordered interactions across multiple actors (request → worker → DB → reply). Inline SVG with vertical lifelines.
 7. **Optional: State machine** — for workflows with discrete states (pending → captured → settled → refunded). Inline SVG with rounded boxes and labelled transitions.
@@ -49,11 +49,23 @@ Don't reach for D3 or mermaid. Hand-rolled inline SVG with simple rounded rectan
 - Labels in serif/sans, sub-labels (filename / address / table name) in mono `--gray-500`
 - Edge labels go above the line in mono small text and describe what flows over the edge ("cookie", "session_id", not "calls")
 
-Three real rules:
+### Hard rules (not soft suggestions)
 
-1. **Fewer boxes than you think you need.** A diagram with twelve boxes is unread. Aim for four to seven.
-2. **One hot box, not three.** The colour means "look here first". If everything is hot, nothing is.
-3. **Edge labels describe the cargo, not the verb.** "Stripe webhook" beats "sends event".
+These are the rules that the model breaks most often. Each one has a failure mode that's been observed in the wild — the diagram looks "OK" while you're drawing it and reads as decoration when the user opens the file.
+
+1. **Cap at 7 nodes per diagram.** If you have 9 boxes, **split into two diagrams** ("shell + page composition" and "page + data layer", or "happy path" and "error path"). Don't keep cramming. A 12-node spaghetti graph with arrows criss-crossing the canvas is the single most common reason a module map gets ignored.
+2. **One hot box per diagram, not three.** The clay color says "look here first". If everything is hot, nothing is.
+3. **No crossing arrows.** If two arrows would cross, the layout is wrong — move boxes until they don't, or split the diagram. Crossings make the eye lose the path.
+4. **No labels on top of boxes.** Edge-label text must sit in *empty space* between nodes, never overlapping a `rect` or `text` element. After laying out, eyeball each label position. If "create" or "edit row" is partially behind a box, move it.
+5. **Snap arrows to box edges.** A line that ends inside a node reads as "this arrow ends inside the box," which is meaningless. Compute the endpoint to land on the rect's perimeter.
+6. **Group with `<rect class="group">` when nodes share a context.** Three loose boxes labelled "Shell", "Page", "Data" beat thirteen boxes drifting on a blank canvas.
+7. **Edge labels describe the cargo, not the verb.** "session_id", "Stripe webhook", "products / categories" — not "calls", "sends", "uses".
+
+Before you finalize a diagram, do this 30-second check:
+
+- Count the boxes. If it's >7, split.
+- Trace each arrow with your eye from tail to head. If any arrow crosses another, or ends inside a box, or has a label on top of a `rect`, fix it before moving on.
+- Check that exactly one box has `.box.hot`.
 
 For sequence diagrams (time on the y-axis), draw vertical lifelines and label arrows with what's in flight. For state machines, draw rounded boxes for states and arrows labelled with the event that triggers the transition.
 
@@ -64,7 +76,37 @@ The walkthrough is what the reader will actually read. Treat it like a tour, not
 - **Step in execution order**, not file order or alphabetical.
 - Each step opens with the file path or the actor, then a paragraph that explains *what happens here and why it has to happen here*.
 - Reference back to the diagram. "After verifyToken returns the Session, control returns to the route handler we drew above." Spatial language pays off when the diagram is right there.
-- Inline a code snippet *only when the code is the explanation*. Don't paste the whole function; paste the eight lines that show the seam.
+
+### Inline code vs lifted code
+
+Inline `<code>` is for *short identifiers* — `useSession`, `panelId`, `/users/`, `version: 2`. Anything that grows beyond an identifier belongs in its own block:
+
+- **Lift to `<pre class="code">` when**: the code is longer than ~40 characters, contains a parameter list, contains multiple `&` / `=` / `?` characters (URL queries, signatures), or shows a transformation. These wrap badly inside prose paragraphs and make the line jagged.
+- **Keep inline when**: it's a single identifier, a path, a small literal value, or a function call with at most one short argument.
+
+Concretely, this stays inline:
+
+> 调用 `useProductsURLState()` 把 URL 解析出来。
+
+This must be lifted:
+
+> ❌ 把 URL 上的 `?category=&listType=&page=&library=&panelType=&panelId=...` 解析出来 — 这串塞在一段 prose 里会把行撑爆。
+>
+> ✅ 写成
+>
+> ```
+> ?category= &listType= &page= &library= &panelType= &panelId=…
+> ```
+>
+> 跟在段落下面，再 `<details class="snippet">` 包起来如果想默认收起来。
+
+### Paragraph density
+
+A walkthrough step paragraph should be **3–5 lines on screen, not 8**. If you find yourself stringing together 6+ inline `<code>` chips inside one paragraph, that paragraph is doing two things — break it into two short paragraphs at the natural seam (e.g. "解析出来 → 然后" is a seam). Dense walls of mixed prose + identifiers are the second-most-common reason a module map gets skimmed past.
+
+### Code snippets
+
+Inline a `<details class="snippet">` *only when the code is the explanation*. Don't paste the whole function; paste the 6–10 lines that show the seam. If the snippet is more than 20 lines, it's a reference, not an explanation — link to the file in `code` text and trust the reader's editor.
 
 ## Gotchas section
 
