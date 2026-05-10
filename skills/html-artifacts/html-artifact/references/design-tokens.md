@@ -12,7 +12,7 @@ These tokens are the shared vocabulary used by every skill under `skills/html-ar
 
 ## Why these tokens exist
 
-The whole point of producing an HTML artifact instead of markdown is that the reader actually reads it. That happens when the document looks like something a human designed, not something an LLM auto-generated. These tokens are tuned to read as a "real" document — warm paper palette, generous whitespace, serif headings paired with mono callouts, and a whisper of elevation that makes cards feel like they're resting on the page rather than carved out of it. Resist the urge to add gradients, neon accents, glows, or emoji.
+The whole point of producing an HTML artifact instead of markdown is that the reader actually reads it. That happens when the document looks like something a human designed, not something an LLM auto-generated. These tokens are tuned to read as a real editorial page — calm ivory paper, crisp slate ink, serif headings with a clay accent, generous breathing room. Cards stay completely flat at idle (clean 1.5px border, soft radius); they only lift on hover. Resist the urge to add idle drop shadows, gradients, neon accents, or emoji — the page reads modern because the *typography* and *spacing* are doing the work, not visual effects.
 
 ## Color palette
 
@@ -20,49 +20,51 @@ The whole point of producing an HTML artifact instead of markdown is that the re
 :root {
   /* surfaces */
   --ivory:    #FAF9F5;  /* page background */
-  --paper:    #FDFCF7;  /* elevated card surface — warm off-white, never stark */
-  --white:    #FFFFFF;  /* reserved for true whites (chips, dot fills) */
+  --paper:    #FFFFFF;  /* card surfaces — pure white, the contrast against ivory is the point */
+  --white:    #FFFFFF;  /* alias of --paper; both names ship for legibility at the call site */
 
   /* ink */
-  --slate:    #1A1916;  /* primary heading text */
-  --gray-700: #45433E;  /* body text */
-  --gray-500: #8C8A82;  /* eyebrow, secondary text, mono labels */
-  --gray-300: #D5D2C7;  /* solid borders on ivory */
-  --gray-150: #F1EFE8;  /* prompt box bg, code bg */
+  --slate:    #141413;  /* heading text and body text — high-contrast for crisp reading */
+  --gray-700: #3D3D3A;  /* secondary body text, table cells */
+  --gray-500: #87867F;  /* eyebrow, mono labels, tertiary text */
+  --gray-300: #D1CFC5;  /* default border on ivory — visible but warm */
+  --gray-200: #E6E3DA;  /* soft fills (thumbnail bg, decorative lines, divider inside cards) */
+  --gray-150: #F0EEE6;  /* prompt box bg, code bg, count chip bg */
 
   /* accents — semantic, not decorative */
-  --clay:     #C97559;  /* danger / needs-attention / removed-line / rejected option */
-  --olive:    #819968;  /* safe / added-line / chosen option / success */
-  --oat:      #E5DCCD;  /* medium / worth-a-look / muted callout bg / dead-end bg */
+  --clay:     #D97757;  /* danger / needs-attention / removed-line / rejected option / accent */
+  --clay-d:   #B85C3E;  /* darker clay for hover states and emphasis */
+  --olive:    #788C5D;  /* safe / added-line / chosen option / success */
+  --oat:      #E3DACC;  /* medium / worth-a-look / muted callout bg / dead-end bg */
 
   /* tints — pre-mixed accents for backgrounds and rails */
-  --clay-tint:   rgba(201,117,89,0.10);
-  --clay-rail:   rgba(201,117,89,0.55);
-  --olive-tint:  rgba(129,153,104,0.10);
-  --olive-rail:  rgba(129,153,104,0.55);
+  --clay-tint:   rgba(217,119,87,0.10);
+  --clay-rail:   rgba(217,119,87,0.55);
+  --olive-tint:  rgba(120,140,93,0.10);
+  --olive-rail:  rgba(120,140,93,0.55);
 
-  /* hairline — semi-transparent ink for tinted/coloured surfaces */
-  --rule:     rgba(26,25,22,0.12);
+  /* hairline — semi-transparent ink, only for inner dividers (list rows, glossary) */
+  --rule:     rgba(20,20,19,0.16);
 
-  /* elevation — barely-there lift, never glassmorphism */
-  --shadow-sm: 0 1px 2px rgba(26,25,22,0.04);
-  --shadow-md: 0 1px 2px rgba(26,25,22,0.04), 0 6px 18px -10px rgba(26,25,22,0.08);
+  /* elevation — reserved for hover lift and the dark callout. Idle cards stay flat. */
+  --shadow-hover: 0 10px 30px rgba(20,20,19,0.10);
+  --shadow-md:    0 1px 2px rgba(20,20,19,0.04), 0 6px 18px -10px rgba(20,20,19,0.08);
 
   /* radii — soft, modern corners */
-  --radius-xs: 8px;
+  --radius-xs: 6px;
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 18px;
 }
 ```
 
-The tokens map onto a meaning, not a color. `--clay` is "this needs attention / rejected", not "this is red". `--olive` is "you can move past this safely / chosen", not "this is green". When you tag risk levels, file diffs, decision options, status indicators, etc., reach for the meaning first and the color follows.
+The tokens map onto a meaning, not a color. `--clay` is "this needs attention / rejected / accent", not "this is red". `--olive` is "you can move past this safely / chosen", not "this is green". When you tag risk levels, file diffs, decision options, status indicators, etc., reach for the meaning first and the color follows.
 
-`--paper` is the default surface for elevated cards (decision, panel, ba-card, ref-badge, diff). It's a warm off-white — pure `--white` reads as harsh on the ivory page. Reserve `--white` for chips and dot fills where contrast against `--paper` is needed.
+**Surfaces.** `--paper` (pure white `#FFFFFF`) is the default for every card, panel, chip, badge, and ref-link. The contrast against the warm ivory page is what makes a card *visibly distinct* — softening that contrast (with off-whites or near-ivory tints) makes cards dissolve into the page, which is the failure mode to avoid. `--white` ships as an alias for the same value; use whichever name reads more clearly at the call site.
 
-`--rule` is a hairline token, not a palette color. Reach for it instead of `--gray-300` when a border sits on a tinted or colored ivory-side surface — the semi-transparent ink stays legible without clashing. It's also the default for card borders now: it reads softer than the solid `--gray-300` and matches the document's calm tone. Both solid and dashed strokes work at this alpha. The token is intentionally ink-side only: dark-surface components (e.g. `.callout-dark`) currently don't use inner hairlines, so an inverse "ivory-on-dark" token would be a documented orphan. Add one alongside the first component that actually consumes it.
+**Borders.** `--gray-300` (`#D1CFC5`, **1.5px**) is the default for card chrome — the outline that delineates a zone. Always 1.5px, never 1px: the half-pixel makes the difference between "I see it" and "I almost see it" on retina displays at viewing distance. `--rule` is for *inner dividers* only — the hairlines between rows in `.open-list`, `.principle-list`, `dl.glossary`, or the sidebar TOC's left edge — places where a solid `--gray-300` would feel too loud because the rows are already part of one container. Don't reach for `--rule` to outline a card; the card will dissolve into ivory. `--gray-200` is for *internal dividers within a card* (e.g. between a thumbnail and a card body) where you want the divider darker than `--rule` but still distinct from the outer chrome.
 
-`--shadow-sm` and `--shadow-md` are the only elevation allowed. They're tuned to be almost imperceptible at first glance — just enough to lift a card a millimetre off the page. Don't reach for stronger shadows; if a component needs more presence, the typography or accent rail should carry that weight, not depth.
+**Elevation.** Cards are flat at idle. The reference editorial style here gets its modern feel from typography, spacing, and tight border craft — *not* from drop shadows on every card. `--shadow-hover` is reserved for `:hover` lifts on interactive cards (`a.card`, `.ref-badge`); pair with `transform: translateY(-3px)` and a `border-color: var(--slate)` darken for the full affordance. `--shadow-md` is reserved for the `.callout-dark` block where the depth genuinely tells the reader "this is the moment".
 
 ## Typography
 
@@ -114,33 +116,24 @@ Use sparingly — three or four per page, not every English term. If everything 
 ## Page shell
 
 ```css
+html { scroll-behavior: smooth; }
 body {
   font-family: var(--sans);
   background: var(--ivory);
-  color: var(--gray-700);
-  font-size: 15px;
-  line-height: 1.62;
-  padding: 64px 32px 128px;
+  color: var(--slate);          /* high-contrast ink for crisp reading on ivory */
+  font-size: 16px;
+  line-height: 1.55;
+  padding: 64px 32px 140px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-/* Subtle dotted-paper texture so the ivory reads as printed stock, not a screen.
-   Fixed-position stays put while the page scrolls; pointer-events:none keeps it inert. */
-body::before {
-  content: ""; position: fixed; inset: 0;
-  pointer-events: none; z-index: 0;
-  background-image:
-    radial-gradient(rgba(26,25,22,0.020) 1px, transparent 1px),
-    radial-gradient(rgba(26,25,22,0.016) 1px, transparent 1px);
-  background-size: 3px 3px, 7px 7px;
-  background-position: 0 0, 1px 2px;
-  opacity: 0.85;
-}
-.page { max-width: 1040px; margin: 0 auto; position: relative; z-index: 1; }
+.page { max-width: 1120px; margin: 0 auto; }
 
 /* Smooth interaction targets — modern micro-feedback without animation noise */
-a, .chip, .ref-badge, .toc a { transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease; }
+a, .chip, .ref-badge, .toc a, a.card, .card { transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 150ms ease, box-shadow 150ms ease; }
 ```
+
+**No paper texture.** Earlier iterations of this file shipped a `body::before` dotted-paper background. We've removed it — the editorial reference our skills are derived from runs flat ivory, and on dense pages the texture competed with the typography for attention. If a future artifact genuinely needs the printed-stock cue (a zine, a poster), opt in locally; don't put it in the global shell.
 
 The texture is the lightest possible "this is paper" cue — at full opacity it would distract; at 0.85 of two ~0.02 alpha radials it just kills the screen-glow flatness. Don't crank it up looking for a stronger effect; if you can see it on first glance, it's too loud.
 
@@ -197,27 +190,41 @@ For a thread recap, status report, or any non-PR artifact, swap the eyebrow text
 .eyebrow {
   font-family: var(--mono);
   font-size: 12px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;            /* wider than typical mono — matches the reference editorial feel */
   text-transform: uppercase;
   color: var(--gray-500);
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+  display: flex; align-items: center; gap: 12px;
+}
+.eyebrow::before {                    /* clay tick-mark before the eyebrow text */
+  content: "";
+  width: 24px; height: 1.5px;
+  background: var(--clay);
 }
 h1 {
   font-family: var(--serif);
   font-weight: 500;
-  font-size: clamp(28px, 2.5vw, 44px);  /* 36px on a 1440 monitor (the old fixed size); floor at narrow widths, mild scale-up past ~1760px */
-  line-height: 1.15;
+  font-size: clamp(36px, 4.6vw, 62px); /* dramatic display size — earns the page's attention */
+  line-height: 1.06;
   color: var(--slate);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.018em;            /* tighter tracking for serif display */
+  margin: 0 0 8px;
+  max-width: 17ch;                     /* 17ch keeps the headline from sprawling on wide viewports */
+}
+h1 em {                                /* italic accent in clay — drop it on one or two key words */
+  font-style: italic;
+  color: var(--clay);
 }
 .meta {
   display: flex; flex-wrap: wrap; gap: 18px;
   font-family: var(--mono); font-size: 12.5px; color: var(--gray-500);
-  margin-top: 12px;
+  margin-top: 22px;
 }
 .meta .add { color: var(--olive); }
 .meta .del { color: var(--clay); }
 ```
+
+The `h1 em` italic-clay treatment is the same idea as the inline `em.kw-en` (used inside body prose). Both pull the reader's eye to a load-bearing word; pick the one that fits the typographic level. Use it once per page; if every word is emphasised, none are.
 
 ### Prompt box (optional)
 
@@ -233,7 +240,7 @@ Shows the user's original ask so the document is reproducible. Keep it short.
 ```css
 .prompt-box {
   background: var(--gray-150);
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--gray-300);
   border-radius: var(--radius-md);
   padding: 18px 22px;
   font-size: 14.5px;
@@ -280,14 +287,17 @@ A horizontal row of clickable chips that jump to sections below. Three common us
   display: inline-flex; align-items: center; gap: 8px;
   padding: 7px 14px; border-radius: 999px;
   font-family: var(--mono); font-size: 12.5px; text-decoration: none;
-  border: 1px solid var(--rule); color: var(--gray-700);
+  border: 1.5px solid var(--gray-300); color: var(--gray-700);
   background: var(--paper);
 }
 .chip:hover {
-  border-color: var(--gray-500);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--slate);
+  color: var(--slate);
 }
+.chip .n {                                  /* optional count after a chip label */
+  font-family: var(--mono); font-size: 10.5px; color: var(--gray-500);
+}
+.chip:hover .n { color: var(--clay); }
 .chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-500); }
 
 /* Risk variants */
@@ -323,7 +333,7 @@ Customize the label (`IN THIS PR` / `IN THIS RECAP` / `IN THIS REPORT` / etc.) a
 ```css
 .toc {
   position: sticky; top: 32px;
-  border-left: 1px solid var(--rule);
+  border-left: 1.5px solid var(--gray-300);
   padding-left: 20px;
   font-size: 13px;
 }
@@ -364,7 +374,7 @@ Optional caption above a code block:
 ```css
 .code {
   background: var(--gray-150);
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--gray-300);
   border-radius: var(--radius-sm);
   padding: 16px 18px;
   font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
@@ -404,9 +414,8 @@ Bubble severities:
 
 ```css
 .diff {
-  border: 1px solid var(--rule); border-radius: var(--radius-md);
+  border: 1.5px solid var(--gray-300); border-radius: var(--radius-md);
   background: var(--paper);
-  box-shadow: var(--shadow-sm);
   overflow: hidden;
   margin: 12px 0;
 }
@@ -439,7 +448,7 @@ Bubble severities:
 .bubble.blocking .label { color: var(--clay); }
 .bubble.question { background: var(--gray-150); border-color: var(--slate); }
 .bubble.question .label { color: var(--slate); }
-.bubble.nit      { background: var(--paper); border-color: var(--rule); }
+.bubble.nit      { background: var(--paper); border-left-color: var(--gray-300); }
 .bubble p { font-size: 14px; color: var(--gray-700); }
 ```
 
@@ -469,11 +478,10 @@ For any "previously this happened, now this happens" comparison.
 ```css
 .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .ba-card {
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--gray-300);
   border-radius: var(--radius-md);
   padding: 22px 24px;
   background: var(--paper);
-  box-shadow: var(--shadow-sm);
 }
 .ba-card.after { border-color: var(--olive-rail); }
 .ba-label {
@@ -517,11 +525,11 @@ The whole point of HTML over markdown is being able to draw. Inline SVG with sim
 ```
 
 ```css
-.flow .box  { fill: #FDFCF7; stroke: rgba(26,25,22,0.14); stroke-width: 1.25; }
-.flow .box.hot { fill: rgba(201,117,89,0.10); stroke: var(--clay); }
+.flow .box  { fill: #fff; stroke: #D1CFC5; stroke-width: 1.5; }
+.flow .box.hot { fill: rgba(217,119,87,0.10); stroke: var(--clay); }
 .flow text { font-family: var(--sans); font-size: 13px; fill: var(--slate); }
 .flow .sub { font-family: var(--mono); font-size: 11px; fill: var(--gray-500); }
-.flow .arrow { stroke: var(--gray-500); stroke-width: 1.25; fill: none; }
+.flow .arrow { stroke: var(--gray-500); stroke-width: 1.5; fill: none; }
 ```
 
 Use `.box.hot` to highlight the "this is the interesting node" — the entry point, the bug site, the new component.
@@ -548,10 +556,9 @@ For walking a reader through code in execution order. Numbered badge + filename 
 .step { display: grid; grid-template-columns: 32px 1fr; gap: 18px; margin-bottom: 28px; }
 .badge {
   width: 28px; height: 28px; border-radius: 50%;
-  background: var(--paper); border: 1px solid var(--rule);
+  background: var(--paper); border: 1.5px solid var(--gray-300);
   display: grid; place-items: center;
-  font-family: var(--mono); font-size: 13px; color: var(--gray-700);
-  box-shadow: var(--shadow-sm);
+  font-family: var(--mono); font-size: 13px; color: var(--clay); font-weight: 600;
 }
 .step-loc { font-family: var(--mono); font-size: 13px; color: var(--gray-700); margin-bottom: 6px; }
 .step-loc .range { color: var(--gray-500); }
@@ -577,10 +584,10 @@ A single paragraph that orients the reader in 3–5 sentences. Lead with what wa
   border-left: 3px solid var(--clay);
   border-radius: 4px var(--radius-md) var(--radius-md) 4px;
   padding: 20px 24px;
-  margin: 20px 0 36px;
+  margin: 24px 0 36px;
 }
 .tldr p {
-  font-size: 16px; line-height: 1.62; color: var(--slate);
+  font-size: 16px; line-height: 1.55; color: var(--slate);
 }
 ```
 
@@ -597,13 +604,12 @@ For the one line you'd want quoted in the team Slack — the takeaway that justi
 
 ```css
 .callout-dark {
-  margin: 36px 0;
-  padding: 32px 36px;
+  margin: 40px 0;
+  padding: 36px 40px;
   background: var(--slate);
   color: var(--ivory);
   border-radius: var(--radius-md);
   position: relative;
-  box-shadow: var(--shadow-md);
 }
 .callout-dark::before {  /* corner crop mark */
   content: ""; position: absolute; top: 14px; left: 14px;
@@ -625,18 +631,74 @@ For the one line you'd want quoted in the team Slack — the takeaway that justi
 
 ### Section headings
 
+The reference editorial pattern uses a clay mono index ("01", "02"…) sitting on a fixed left rail, with the serif h2 on the same baseline. Subsequent prose inside the section indents to match the index column so every section reads as one column visually. Reach for the `.sec-head` form when the document has more than two sections — it gives the reader an at-a-glance map. For one-off h2 headings inside short documents, use the plain `h2` with an inline `.h-num` instead.
+
 ```css
+section { margin-top: 72px; scroll-margin-top: 28px; }
+
+.sec-head {
+  display: flex; align-items: baseline; gap: 16px;
+  margin-bottom: 12px;
+}
+.sec-head .idx {
+  font-family: var(--mono); font-size: 13px;
+  color: var(--clay); font-weight: 600;
+  width: 34px; flex-shrink: 0;
+}
+.sec-head h2 {
+  font-family: var(--serif); font-weight: 500;
+  font-size: 27px; color: var(--slate);
+  letter-spacing: -0.012em;
+  margin: 0;
+}
+.sec-head .count {                   /* optional small count chip */
+  font-family: var(--mono); font-size: 11px;
+  color: var(--gray-500); background: var(--gray-150);
+  padding: 2px 8px; border-radius: 999px;
+}
+.sec-intro {
+  font-size: 14.5px; color: var(--gray-700);
+  max-width: 70ch;
+  margin: 0 0 24px 50px;             /* indent matches sec-head idx column (34px + 16px gap) */
+}
+@media (max-width: 640px) {
+  .sec-intro { margin-left: 0; }
+}
+
+/* Plain h2 — for short documents that don't use .sec-head */
 h2 {
   font-family: var(--serif); font-weight: 500;
-  font-size: clamp(20px, 1.7vw, 28px); color: var(--slate);  /* ~24px on a 1440 monitor (the old fixed size) */
-  margin: 40px 0 16px;
+  font-size: clamp(22px, 1.9vw, 27px); color: var(--slate);
+  margin: 56px 0 16px;
+  letter-spacing: -0.012em;
+}
+h2 .h-num {                          /* inline mono index in clay */
+  font-family: var(--mono); font-size: 13px;
+  color: var(--clay); font-weight: 600;
+  margin-right: 12px;
+}
+h3 {
+  font-family: var(--serif); font-weight: 500;
+  font-size: 19px; color: var(--slate);
+  margin: 28px 0 8px;
   letter-spacing: -0.005em;
 }
-h2 .h-num {
-  font-family: var(--mono); font-size: 14px;
-  color: var(--gray-500); margin-right: 8px;
-  font-weight: normal;
-}
+```
+
+```html
+<!-- Sec-head form (preferred for multi-section documents) -->
+<section id="risk">
+  <div class="sec-head">
+    <span class="idx">01</span>
+    <h2>Risk map</h2>
+    <span class="count">9 files</span>
+  </div>
+  <p class="sec-intro">A short orientation paragraph for this section, indented under the title to keep the column flow.</p>
+  <!-- section content here, also typically margin-left: 50px to align under sec-head -->
+</section>
+
+<!-- Plain form -->
+<h2><span class="h-num">02</span>Where to focus</h2>
 ```
 
 ### Decision card
@@ -675,10 +737,9 @@ For artifacts that capture decisions (thread recaps, design docs, post-mortems, 
 
 ```css
 .decision {
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--gray-300);
   border-radius: var(--radius-md);
   background: var(--paper);
-  box-shadow: var(--shadow-sm);
   padding: 26px 28px;
   margin-bottom: 24px;
 }
@@ -719,7 +780,7 @@ For artifacts that capture decisions (thread recaps, design docs, post-mortems, 
 }
 .opt.rejected .marker {
   background: var(--paper); color: var(--gray-500);
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--gray-300);
 }
 .opt.rejected strong { color: var(--gray-700); }
 
@@ -908,7 +969,7 @@ For external links — Jira tickets, Sentry issues, GitHub PRs, design docs. The
 .ref-badge {
   display: inline-flex; align-items: baseline; gap: 14px;
   padding: 10px 16px;
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--gray-300);
   border-radius: var(--radius-sm);
   background: var(--paper);
   text-decoration: none;
@@ -916,9 +977,9 @@ For external links — Jira tickets, Sentry issues, GitHub PRs, design docs. The
   color: var(--gray-700);
 }
 .ref-badge:hover {
-  border-color: var(--gray-500);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--slate);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 .ref-badge .src {
   font-family: var(--mono); font-size: 10.5px;
@@ -960,12 +1021,11 @@ A right-sidebar `aside` for short reference material — file lists, gotchas, su
 
 ```css
 .panel {
-  background: var(--paper); border: 1px solid var(--rule);
-  border-radius: var(--radius-md); padding: 20px 22px;
-  box-shadow: var(--shadow-sm);
+  background: var(--paper); border: 1.5px solid var(--gray-300);
+  border-radius: var(--radius-md); padding: 22px 24px;
 }
 .panel.callout {
-  background: rgba(201,117,89,0.06);
+  background: rgba(217,119,87,0.06);
   border-color: var(--clay-rail);
 }
 .panel-label {
@@ -991,8 +1051,8 @@ For the rare moments where the exact wording from a source matters (a user const
 
 ```css
 .excerpt {
-  border-left: 3px solid var(--rule);
-  padding: 10px 18px;
+  border-left: 3px solid var(--gray-300);
+  padding: 12px 20px;
   margin: 16px 0;
   background: var(--paper);
   border-radius: 4px var(--radius-sm) var(--radius-sm) 4px;
@@ -1046,7 +1106,10 @@ When in doubt, prefer `.excerpt` — it's quieter and won't crowd the surroundin
 
 - Do not add a logo, favicon, or "Generated by Claude" footer. The artifact stands on its own.
 - Do not use emoji as iconography. The mono labels and color dots already do that job and look more professional.
-- Do not add gradients, neon glows, blurred glassmorphism, or heavy drop shadows. The provided `--shadow-sm` / `--shadow-md` tokens are the only allowed elevation — they're tuned to read as "paper resting on paper", not "card floating in space". If you want more presence, lean on typography or the accent rail, not depth.
+- Do not put idle drop shadows on cards. Cards stay flat at rest — the editorial look gets its modernness from typography, generous spacing, and clean 1.5px borders, not from cards floating off the page. `--shadow-hover` is reserved for `:hover` lifts on interactive elements; `--shadow-md` is reserved for `.callout-dark`.
+- Do not add gradients, neon glows, or glassmorphism blur. If you want more presence, lean on typography (italic clay accents, larger serif display sizes) or the section's accent rail, not depth.
+- Do not use 1px borders for card chrome. Always 1.5px — the half-pixel keeps the outline legible at retina viewing distance.
+- Do not soften card surfaces below pure white (`--paper` / `--white` are the same). Off-whites or near-ivory tints make cards dissolve into the page.
 - Do not use a dark theme by default. The ivory background is the look. The `.callout-dark` block is the one exception, used at most once per artifact.
 - Do not add JavaScript libraries. A small inline `<script>` for click-to-highlight is fine; anything bigger is a smell.
 - Do not bury the lede behind hero illustrations or animations. The reader is here for the content.
