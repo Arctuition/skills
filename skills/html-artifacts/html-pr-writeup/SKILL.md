@@ -58,9 +58,13 @@ Apply the tokens and components in `references/design-tokens.md` exactly. The vi
 
 ## Output
 
-Write the result to a single `.html` file. Default filename: `pr-<number>-writeup.html` if a PR number is known, otherwise `pr-<branch-name>-writeup.html`. Save it in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open.
+Default filename: `pr-<number>-writeup.html` if a PR number is known, otherwise `pr-<branch-name>-writeup.html`.
 
-Tell the user where you saved it and offer to (a) upload it somewhere shareable, or (b) iterate on a specific section. Don't dump the HTML source into chat — the artifact is the deliverable.
+<!-- shared:save-conventions-start -->
+Save in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
+<!-- shared:save-conventions-end -->
+
+Tell the user where you saved it and offer to (a) upload it somewhere shareable, or (b) iterate on a specific section.
 
 ## Output language
 

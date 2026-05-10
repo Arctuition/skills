@@ -84,7 +84,13 @@ Apply the tokens and components in `references/design-tokens.md`. The visual lan
 
 ## Output
 
-Save as `<subject-name>-breakdown.html` (e.g. `auth-flow-breakdown.html`, `checkout-breakdown.html`) in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Ask whether they want to (a) deepen any section, (b) add a sequence diagram or state machine, or (c) move on. Don't dump the HTML source into chat.
+Default filename: `<subject-name>-breakdown.html` (e.g. `auth-flow-breakdown.html`, `checkout-breakdown.html`).
+
+<!-- shared:save-conventions-start -->
+Save in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
+<!-- shared:save-conventions-end -->
+
+After saving, ask whether they want to (a) deepen any section, (b) add a sequence diagram or state machine, or (c) move on.
 
 ## Output language
 

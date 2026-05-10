@@ -77,7 +77,13 @@ Use the tokens and components in `references/design-tokens.md`. Risk colours are
 
 ## Output
 
-Save as `pr-<number>-review.html` in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. After saving, ask whether they want you to (a) draft the GitHub review comments based on this, (b) deepen any section, or (c) move on. Don't dump the HTML source into chat.
+Default filename: `pr-<number>-review.html`.
+
+<!-- shared:save-conventions-start -->
+Save in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
+<!-- shared:save-conventions-end -->
+
+After saving, ask whether they want you to (a) draft the GitHub review comments based on this, (b) deepen any section, or (c) move on.
 
 ## Output language
 

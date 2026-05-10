@@ -95,7 +95,11 @@ The decision card, dead-end callout, and reference badge are introduced in this 
 
 ## Output
 
-Save as `<topic>-recap.html` (e.g. `auth-migration-recap.html`, `slow-checkout-investigation-recap.html`) in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. If the topic isn't obvious, ask one short question rather than guess. Don't dump the HTML source into chat — the artifact is the deliverable.
+Default filename: `<topic>-recap.html` (e.g. `auth-migration-recap.html`, `slow-checkout-investigation-recap.html`). If the topic isn't obvious, ask one short question rather than guess.
+
+<!-- shared:save-conventions-start -->
+Save in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
+<!-- shared:save-conventions-end -->
 
 After saving, offer to (a) iterate on a specific decision card, (b) add or remove a section, (c) tighten the TL;DR. Don't auto-share — the user decides where it goes.
 
