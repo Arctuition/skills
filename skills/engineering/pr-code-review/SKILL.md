@@ -15,14 +15,16 @@ Review GitHub PRs using the gh CLI. Post inline comments tied to specific code l
 3. Read changed files in full context.
 4. Analyze using a structured checklist.
 5. Draft findings with proper tone.
-6. Submit a single batched review — or, in interactive mode, present the draft and wait for the user to greenlight it.
-7. Output a severity summary.
+6. Submit a single batched review — or, in interactive mode, draft → discuss → post, then stay engaged for follow-up comments until the user closes the session.
+7. Output a severity summary (in interactive mode, re-rendered after each post).
 
 ## 0) Mode selection (auto-post vs interactive)
 
 Decide upfront, before reading any code, which mode this review runs in. Tell the user which mode you picked in one sentence.
 
-**Interactive mode (manual / "手动挡")** — draft everything locally, present it to the user for discussion, post only after they explicitly approve. Pick this mode if the user's request contains any hint of:
+**Interactive mode (manual / "手动挡")** — collaborative, not one-shot. Draft locally, discuss with the user, post only after explicit approval — and stay engaged after the first post, because the human reviewer is doing their own pass in parallel and will surface new issues for you to weigh in on and (when you both agree) post as follow-up comments. The skill is "done" only when the user says so.
+
+Pick this mode if the user's request contains any hint of:
 
 - "interactive", "interactively", "手动", "手动挡", "manual", "manually"
 - "let's discuss / 讨论一下 / 先讨论 / 商量 / 商量一下" before posting
@@ -245,6 +247,10 @@ gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.
 
 #### Interactive mode (manual / "手动挡")
 
+Interactive mode runs in two phases. **Both must happen** — do not consider the skill done after Phase 1.
+
+##### Phase 1 — Initial draft cycle
+
 **Do NOT post anything to GitHub yet.** Instead:
 
 1. Confirm the payload file exists locally (e.g. `/tmp/review-payload-<pr>.json`) and tell the user the path so they can inspect it if they want.
@@ -252,7 +258,7 @@ gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.
 3. Explicitly state that nothing has been posted and ask the user how they want to proceed. Offer concrete actions: edit a specific comment, drop a comment, change priority, change the verdict, add a new finding, or post as-is.
 4. Iterate. Each time the user requests a change, update `/tmp/review-payload-<pr>.json` in place (via Read + Write) and show the diff or the affected comment again. Do not POST between iterations.
 5. Only POST after the user clearly says to (e.g. "post it", "ship it", "go ahead", "post 吧", "可以了"). Ambiguous responses ("looks good", "ok") should be confirmed once more before posting.
-6. After posting, continue to step 7 (Output summary) as usual.
+6. After posting, render a brief "what was just posted" summary (per step 7) **and immediately enter Phase 2**. Do not end the skill.
 
 Suggested message shape when presenting the draft:
 
@@ -275,7 +281,43 @@ Summary body: ...
 Let me know what to change, or say "post it" to submit.
 ```
 
-**Permission requirement** — submitting a review requires write/collaborator access to the repo. If you get a 403/422 error when posting, you lack the necessary permissions.
+##### Phase 2 — Ongoing discussion (follow-up comments)
+
+After the initial post the human reviewer continues reading the PR themselves. They will surface new concerns, ask you to verify them, and — when you both agree it's a real finding — ask you to post follow-up comments. For each new concern:
+
+1. **Don't be a stenographer.** Apply the [should-I-flag-this test](#4-analyze-using-the-review-checklist) from step 4. If the concern doesn't pass — pre-existing issue, speculative, pure preference, etc. — say so briefly and explain why instead of drafting. Only proceed when you and the user agree it's worth posting.
+2. **Refresh the head SHA.** The author may have pushed commits since your last post, and the new comment must reference the current HEAD:
+   ```bash
+   COMMIT_SHA=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
+   ```
+3. **Verify the target file:line at HEAD.** Read the file (or `gh api .../contents/...?ref=$COMMIT_SHA`) to confirm the line you're commenting on still says what you think it says.
+4. **Draft the comment** using the rules from step 5 (priority tag, scenario lead, ≤1 paragraph body, suggestion block if applicable). Show it to the user.
+5. **Wait for explicit approval** before posting — same bar as Phase 1.
+6. **Post in the smallest sensible unit.** Pick one:
+
+   - **Single new finding** → one inline comment. Write `/tmp/comment-<pr>-<n>.json` with `{"body": "...", "commit_id": "...", "path": "...", "line": ..., "side": "RIGHT"}` and POST:
+     ```bash
+     gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments --input /tmp/comment-<pr>-<n>.json
+     ```
+   - **Several new findings at once** → batch into a new mini-review with `event: "COMMENT"` (no verdict change). Same payload shape as Phase 1; POST to `/pulls/<pr>/reviews` the same way.
+   - **Replying to an existing thread** (continuing a discussion the human or another reviewer started) → reply on that thread instead of creating a new top-level comment:
+     ```bash
+     gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments/<comment_id>/replies -f body='...'
+     ```
+   - **Correcting something you already posted** → PATCH the existing comment:
+     ```bash
+     gh api -X PATCH repos/$OWNER_REPO/pulls/comments/<comment_id> -f body='...'
+     ```
+
+7. After posting, render a short per-batch summary (see step 7) and **stay open**. Phase 2 ends only when the user says they're done ("that's all", "done", "可以了 / 结束 / 收工").
+
+**Don't duplicate.** If you're re-invoked mid-discussion (new chat, picked up later) and don't have the history in context, list what's already been posted before drafting anything new:
+```bash
+gh api repos/$OWNER_REPO/pulls/<pr>/reviews --jq '.[] | {id, user: .user.login, state, body, submitted_at}'
+gh api repos/$OWNER_REPO/pulls/<pr>/comments --jq '.[] | {id, path, line, body, user: .user.login}'
+```
+
+**Permission requirement** — submitting a review or comment requires write/collaborator access to the repo. If you get a 403/422 error when posting, you lack the necessary permissions.
 
 #### Fallback (both modes)
 
@@ -300,7 +342,11 @@ See [references/gh-cli.md](references/gh-cli.md) for multi-line comments, sugges
 
 ### 7) Output summary
 
-End with a summary for the user (not posted to GitHub). Include an **overall correctness verdict** — a binary assessment of whether the patch is correct (existing code and tests will not break, no bugs or blocking issues; ignore style, formatting, and nits).
+Render a summary for the user (not posted to GitHub) after each post. Include an **overall correctness verdict** — a binary assessment of whether the patch is correct (existing code and tests will not break, no bugs or blocking issues; ignore style, formatting, and nits).
+
+**Auto-post mode** — render this once, after the single submission, and the skill ends.
+
+**Interactive mode** — render after Phase 1's initial submission, and again after each Phase 2 follow-up batch. The follow-up summary should be smaller: focus on what was just posted, and append a running tally of total findings posted so far. Do not re-render an exhaustive list every time. After the summary in interactive mode, remind the user that you're still in Phase 2 and waiting for the next concern.
 
 ```
 ## Review posted
