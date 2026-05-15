@@ -15,27 +15,16 @@ Review GitHub PRs using the gh CLI. Post inline comments tied to specific code l
 3. Read changed files in full context.
 4. Analyze using a structured checklist.
 5. Draft findings with proper tone.
-6. Submit a single batched review — or, in interactive mode, present the draft and wait for the user to greenlight it.
-7. Output a severity summary.
+6. Submit a single batched review — or, in interactive mode, draft → discuss → post, then stay engaged for follow-up comments until the user closes the session.
+7. Output a severity summary (in interactive mode, re-rendered after each post).
 
 ## 0) Mode selection (auto-post vs interactive)
 
-Decide upfront, before reading any code, which mode this review runs in. Tell the user which mode you picked in one sentence.
+Pick a mode before reading code; tell the user which one in one sentence. Steps 1–5 are identical; only step 6 differs.
 
-**Interactive mode (manual / "手动挡")** — draft everything locally, present it to the user for discussion, post only after they explicitly approve. Pick this mode if the user's request contains any hint of:
+**Interactive mode (manual / "手动挡")** — collaborative, not one-shot. Draft locally, discuss, post on approval, then stay engaged so the human can surface more issues that you (when you both agree) post as follow-ups. The skill ends only when the user says so. Trigger phrases: "interactive", "manual / 手动 / 手动挡", "discuss / 讨论 / 商量", "don't post / 先别 post / 不要直接 post", "draft", "preview", "ask me before posting". Default to interactive whenever the user implies any preview or approval step — even without the word "interactive".
 
-- "interactive", "interactively", "手动", "手动挡", "manual", "manually"
-- "let's discuss / 讨论一下 / 先讨论 / 商量 / 商量一下" before posting
-- "don't post / 不要直接 post / 不要直接发 / 先别 post / 先不要 post"
-- "review first, then post" / "先看一下 ... 再 post" / "先整体看一下"
-- "draft", "draft only", "review-only", "preview the comments"
-- explicit confirmation step requested ("ask me before posting", "let me approve")
-
-If any of these phrases appear, default to interactive mode even if the user did not say the word "interactive" verbatim.
-
-**Auto-post mode (default)** — only when the user clearly asks for a normal review and does not request any kind of preview, discussion, or approval step. When in doubt, ask one short clarifying question rather than auto-posting.
-
-The two modes share every step **except step 6 (submission)**. Run steps 1–5 the same way regardless of mode.
+**Auto-post mode (default)** — only when the user clearly wants a normal one-shot review with no preview or approval step. When in doubt, ask one short clarifying question.
 
 ## Step-by-step
 
@@ -245,37 +234,36 @@ gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.
 
 #### Interactive mode (manual / "手动挡")
 
-**Do NOT post anything to GitHub yet.** Instead:
+Runs in two phases. **Both must happen** — do not end the skill after Phase 1.
 
-1. Confirm the payload file exists locally (e.g. `/tmp/review-payload-<pr>.json`) and tell the user the path so they can inspect it if they want.
-2. Present a human-readable preview of every comment in chat — for each finding show: priority, `file:line`, the one-paragraph body, and (if present) the suggestion block rendered as code. Also show the proposed `event` (APPROVE / REQUEST_CHANGES / COMMENT) and review-summary body.
-3. Explicitly state that nothing has been posted and ask the user how they want to proceed. Offer concrete actions: edit a specific comment, drop a comment, change priority, change the verdict, add a new finding, or post as-is.
-4. Iterate. Each time the user requests a change, update `/tmp/review-payload-<pr>.json` in place (via Read + Write) and show the diff or the affected comment again. Do not POST between iterations.
-5. Only POST after the user clearly says to (e.g. "post it", "ship it", "go ahead", "post 吧", "可以了"). Ambiguous responses ("looks good", "ok") should be confirmed once more before posting.
-6. After posting, continue to step 7 (Output summary) as usual.
+##### Phase 1 — Initial draft cycle
 
-Suggested message shape when presenting the draft:
+Do NOT POST yet.
 
+1. Tell the user the payload path (e.g. `/tmp/review-payload-<pr>.json`) and show a human-readable preview of every comment — priority, `file:line`, body, suggestion (as a code block), plus the proposed verdict and summary.
+2. Make clear nothing has been posted, then iterate. For each requested change, update `/tmp/review-payload-<pr>.json` in place via Read + Write. Do not POST between iterations.
+3. POST only on explicit approval ("post it", "ship it", "post 吧", "可以了"). Treat ambiguous responses ("looks good", "ok") as a request to confirm once more.
+4. After posting, render a brief summary (step 7) and immediately enter Phase 2.
+
+##### Phase 2 — Ongoing discussion (follow-up comments)
+
+After the initial post, the human keeps reviewing and will surface new concerns. For each one:
+
+1. **Don't be a stenographer.** Apply the [should-I-flag-this test](#4-analyze-using-the-review-checklist) — push back briefly if the concern is pre-existing, speculative, or pure preference. Only proceed when you both agree it's worth posting.
+2. **Refresh `$COMMIT_SHA`** (`gh pr view <pr> --json headRefOid --jq .headRefOid`) — author may have pushed since. Verify the target `file:line` at HEAD still says what you think.
+3. **Draft** per step 5 rules, show it, wait for explicit approval.
+4. **POST in the smallest sensible unit:**
+   - **One finding** → one inline comment. Write `/tmp/comment-<pr>-<n>.json` with `{body, commit_id, path, line, side: "RIGHT"}` and `gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments --input <file>`.
+   - **Several at once** → mini-review with `event: "COMMENT"` (no verdict change), same payload shape as Phase 1.
+   - **Continuing an existing thread** → `gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments/<comment_id>/replies -f body='...'`.
+   - **Correcting your own comment** → `gh api -X PATCH repos/$OWNER_REPO/pulls/comments/<comment_id> -f body='...'`.
+5. Render a short per-batch summary (step 7) and stay open. Phase 2 ends only when the user says so ("done", "可以了", "收工").
+
+If re-invoked mid-discussion without history, list what's already posted before drafting:
+```bash
+gh api repos/$OWNER_REPO/pulls/<pr>/reviews --jq '.[] | {id, user: .user.login, state, body, submitted_at}'
+gh api repos/$OWNER_REPO/pulls/<pr>/comments --jq '.[] | {id, path, line, body, user: .user.login}'
 ```
-Drafted review — NOT posted yet. Payload: /tmp/review-payload-<pr>.json
-
-Proposed verdict: REQUEST_CHANGES
-Summary body: ...
-
-[P1] src/service/retry.ts:42 — Add max-attempts guard to retry loop
-  <body paragraph>
-  Suggestion:
-  ```ts
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-  ```
-
-[P2] src/api/handler.ts:15 — Validate `userId` parameter before use
-  <body paragraph>
-
-Let me know what to change, or say "post it" to submit.
-```
-
-**Permission requirement** — submitting a review requires write/collaborator access to the repo. If you get a 403/422 error when posting, you lack the necessary permissions.
 
 #### Fallback (both modes)
 
@@ -300,7 +288,10 @@ See [references/gh-cli.md](references/gh-cli.md) for multi-line comments, sugges
 
 ### 7) Output summary
 
-End with a summary for the user (not posted to GitHub). Include an **overall correctness verdict** — a binary assessment of whether the patch is correct (existing code and tests will not break, no bugs or blocking issues; ignore style, formatting, and nits).
+Render a summary for the user (not posted to GitHub) after each post. Include an **overall correctness verdict** — does the patch break existing code/tests or introduce bugs (ignore style/formatting/nits).
+
+- **Auto-post**: render once, skill ends.
+- **Interactive**: render after Phase 1's post and after each Phase 2 batch. Follow-up summaries are smaller — what was just posted plus a running tally — and end with a reminder you're still waiting for the next concern.
 
 ```
 ## Review posted
