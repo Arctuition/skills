@@ -20,7 +20,7 @@ These skills are designed to be small and composable. Each one lives in its own 
 Skills that operate on code and tickets.
 
 - **[jira-ticket-manager](./skills/engineering/jira-ticket-manager/SKILL.md)** — Create, search, view, and edit Jira tickets non-interactively via `jira-cli`. Auto-selects the right component (API / Projects / Proposals / Backends / Regression / AI).
-- **[pr-code-review](./skills/engineering/pr-code-review/SKILL.md)** — Review GitHub PRs via `gh`. Posts inline comments on specific lines and submits a single batched review with a P0–P3 priority summary and a verdict.
+- **[pr-code-review](./skills/engineering/pr-code-review/SKILL.md)** — Review GitHub PRs via `gh`. Posts inline comments on specific lines and submits a single batched review with a P0–P3 priority summary and a verdict. Supports an **interactive mode** ("interactive review", "手动挡", "discuss before posting") that drafts everything locally and waits for explicit approval before anything is posted.
 - **[sentry-issue-resolver](./skills/engineering/sentry-issue-resolver/SKILL.md)** — Fetch a Sentry issue with full stack trace and event context, then walk the root cause and propose a fix.
 
 ### HTML Artifacts

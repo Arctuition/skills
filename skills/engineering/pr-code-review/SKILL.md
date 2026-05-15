@@ -1,6 +1,6 @@
 ---
 name: pr-code-review
-description: Perform GitHub pull request code reviews using the gh CLI. Use when asked to review a PR, inspect PR diffs, leave inline review comments on specific lines, or produce a priority-based summary (P0-P3) of findings with an overall correctness verdict.
+description: Perform GitHub pull request code reviews using the gh CLI. Use when asked to review a PR, inspect PR diffs, leave inline review comments on specific lines, or produce a priority-based summary (P0-P3) of findings with an overall correctness verdict. Also use for "interactive review" / "manual review" flows where the user wants to discuss findings before anything is posted to GitHub.
 ---
 
 # PR Code Review
@@ -9,13 +9,33 @@ Review GitHub PRs using the gh CLI. Post inline comments tied to specific code l
 
 ## Workflow overview
 
+0. Pick a mode — auto-post or interactive (see below).
 1. Understand the PR and run pre-checks.
 2. Get the diff and identify high-risk areas.
 3. Read changed files in full context.
 4. Analyze using a structured checklist.
 5. Draft findings with proper tone.
-6. Submit a single batched review with inline comments and verdict.
+6. Submit a single batched review — or, in interactive mode, present the draft and wait for the user to greenlight it.
 7. Output a severity summary.
+
+## 0) Mode selection (auto-post vs interactive)
+
+Decide upfront, before reading any code, which mode this review runs in. Tell the user which mode you picked in one sentence.
+
+**Interactive mode (manual / "手动挡")** — draft everything locally, present it to the user for discussion, post only after they explicitly approve. Pick this mode if the user's request contains any hint of:
+
+- "interactive", "interactively", "手动", "手动挡", "manual", "manually"
+- "let's discuss / 讨论一下 / 先讨论 / 商量 / 商量一下" before posting
+- "don't post / 不要直接 post / 不要直接发 / 先别 post / 先不要 post"
+- "review first, then post" / "先看一下 ... 再 post" / "先整体看一下"
+- "draft", "draft only", "review-only", "preview the comments"
+- explicit confirmation step requested ("ask me before posting", "let me approve")
+
+If any of these phrases appear, default to interactive mode even if the user did not say the word "interactive" verbatim.
+
+**Auto-post mode (default)** — only when the user clearly asks for a normal review and does not request any kind of preview, discussion, or approval step. When in doubt, ask one short clarifying question rather than auto-posting.
+
+The two modes share every step **except step 6 (submission)**. Run steps 1–5 the same way regardless of mode.
 
 ## Step-by-step
 
@@ -181,9 +201,9 @@ Also note things done well — good patterns, thorough edge-case handling, clean
 
 Follow the [comment tone guidelines](#comment-tone) and [noise control rules](#when-not-to-comment) below.
 
-### 6) Submit as a single batched review
+### 6) Submit (or, in interactive mode, present the draft)
 
-**Always use the Reviews API** to submit all comments as one review. This creates a single notification and a proper review record with a verdict.
+Both modes build the same JSON payload as a temp file — only the final step (POST vs. pause for discussion) differs.
 
 **Build the JSON payload as a temp file** to avoid shell escaping issues (backticks in suggestion blocks break heredocs).
 
@@ -211,19 +231,55 @@ Write the review payload to a temp file using the Write tool (use the `$COMMIT_S
 }
 ```
 
-Then submit:
-```bash
-gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.json
-```
-
 **Review verdicts:**
 - `APPROVE` — no P0/P1 issues, the patch is correct
 - `REQUEST_CHANGES` — has P0 or P1 issues that must be fixed before merge
 - `COMMENT` — only P2/P3 issues, or you want discussion without blocking
 
-**Permission requirement** — submitting a review requires write/collaborator access to the repo. If you get a 403/422 error, you lack the necessary permissions.
+#### Auto-post mode
 
-**Fallback** — if the Reviews API fails, degrade gracefully:
+Submit directly:
+```bash
+gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.json
+```
+
+#### Interactive mode (manual / "手动挡")
+
+**Do NOT post anything to GitHub yet.** Instead:
+
+1. Confirm the payload file exists locally (e.g. `/tmp/review-payload-<pr>.json`) and tell the user the path so they can inspect it if they want.
+2. Present a human-readable preview of every comment in chat — for each finding show: priority, `file:line`, the one-paragraph body, and (if present) the suggestion block rendered as code. Also show the proposed `event` (APPROVE / REQUEST_CHANGES / COMMENT) and review-summary body.
+3. Explicitly state that nothing has been posted and ask the user how they want to proceed. Offer concrete actions: edit a specific comment, drop a comment, change priority, change the verdict, add a new finding, or post as-is.
+4. Iterate. Each time the user requests a change, update `/tmp/review-payload-<pr>.json` in place (via Read + Write) and show the diff or the affected comment again. Do not POST between iterations.
+5. Only POST after the user clearly says to (e.g. "post it", "ship it", "go ahead", "post 吧", "可以了"). Ambiguous responses ("looks good", "ok") should be confirmed once more before posting.
+6. After posting, continue to step 7 (Output summary) as usual.
+
+Suggested message shape when presenting the draft:
+
+```
+Drafted review — NOT posted yet. Payload: /tmp/review-payload-<pr>.json
+
+Proposed verdict: REQUEST_CHANGES
+Summary body: ...
+
+[P1] src/service/retry.ts:42 — Add max-attempts guard to retry loop
+  <body paragraph>
+  Suggestion:
+  ```ts
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+  ```
+
+[P2] src/api/handler.ts:15 — Validate `userId` parameter before use
+  <body paragraph>
+
+Let me know what to change, or say "post it" to submit.
+```
+
+**Permission requirement** — submitting a review requires write/collaborator access to the repo. If you get a 403/422 error when posting, you lack the necessary permissions.
+
+#### Fallback (both modes)
+
+If the Reviews API fails when posting, degrade gracefully:
 
 1. Post each inline comment individually (preserves line-level feedback):
 ```bash
