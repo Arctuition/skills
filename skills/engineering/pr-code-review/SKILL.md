@@ -5,104 +5,64 @@ description: Perform GitHub pull request code reviews using the gh CLI. Use when
 
 # PR Code Review
 
-Review GitHub PRs using the gh CLI. Post inline comments tied to specific code lines, use GitHub suggestion blocks for trivial fixes, and submit everything as a single batched review with a verdict.
+Review GitHub PRs using the gh CLI. Post inline comments tied to specific code lines, use GitHub suggestion blocks for trivial fixes, and submit everything as a single batched review with a verdict. All gh CLI patterns — repo context, PR metadata, diff inspection, Reviews API payload, suggestion syntax, line-number mapping, fallback commands — live in [references/gh-cli.md](references/gh-cli.md).
 
 ## Workflow overview
 
-0. Pick a mode — auto-post or interactive (see below).
+0. Pick a mode — auto-post or interactive.
 1. Understand the PR and run pre-checks.
 2. Get the diff and identify high-risk areas.
 3. Read changed files in full context.
-4. Analyze using a structured checklist.
+4. Analyze using the structured checklist.
 5. Draft findings with proper tone.
 6. Submit a single batched review — or, in interactive mode, draft → discuss → post, then stay engaged for follow-up comments until the user closes the session.
 7. Output a severity summary (in interactive mode, re-rendered after each post).
 
-## 0) Mode selection (auto-post vs interactive)
+## 0) Mode selection
 
-Pick a mode before reading code; tell the user which one in one sentence. Steps 1–5 are identical; only step 6 differs.
+Pick a mode before reading code; tell the user which one in one sentence.
 
-**Interactive mode (manual / "手动挡")** — collaborative, not one-shot. Draft locally, discuss, post on approval, then stay engaged so the human can surface more issues that you (when you both agree) post as follow-ups. The skill ends only when the user says so. Trigger phrases: "interactive", "manual / 手动 / 手动挡", "discuss / 讨论 / 商量", "don't post / 先别 post / 不要直接 post", "draft", "preview", "ask me before posting". Default to interactive whenever the user implies any preview or approval step — even without the word "interactive".
+**Interactive mode (manual / "手动挡")** — draft locally, discuss, post on approval, then stay engaged so the human can surface more issues that you (when you both agree) post as follow-ups. Ends only when the user says so. Trigger phrases: "interactive", "manual / 手动 / 手动挡", "discuss / 讨论 / 商量", "don't post / 先别 post", "draft", "preview", "ask me before posting". Default to interactive whenever the user implies any preview or approval step.
 
-**Auto-post mode (default)** — only when the user clearly wants a normal one-shot review with no preview or approval step. When in doubt, ask one short clarifying question.
+**Auto-post mode (default)** — only when the user clearly wants a one-shot review with no preview step. When in doubt, ask one short clarifying question.
 
 ## Step-by-step
 
 ### 1) Understand the PR and run pre-checks
 
-First, auto-detect the repo context so you don't need hardcoded owner/repo values:
+Capture repo context and the head commit SHA — referenced throughout:
 
 ```bash
 OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-```
-
-Read the PR description and metadata to understand intent before looking at code:
-
-```bash
-gh pr view <pr> --json number,title,body,headRefOid,baseRefName,headRefName,author,labels,changedFiles,additions,deletions
-
-gh pr view <pr> --json files --jq '.files[] | {path,additions,deletions}'
-
-# Capture the head commit SHA — used throughout the review
 COMMIT_SHA=$(gh pr view <pr> --json headRefOid --jq .headRefOid)
 ```
 
-Capture:
-- **What** the PR claims to do (from title and body).
-- **Why** it exists (linked issue, motivation in the description).
-- **Scope** — how many files changed, total lines added/removed.
+Read PR metadata (title, body, linked issue, file list, churn) — commands in [references/gh-cli.md](references/gh-cli.md#pr-metadata). Capture:
 
-Use this context to calibrate your review: a one-line typo fix needs different scrutiny than a new auth middleware.
+- **What/Why** the PR claims to do (title, body, linked issue).
+- **Scope** — file count, lines added/removed. Calibrate scrutiny: a typo fix needs less than a new auth middleware.
+- **Spec docs in the PR** — does the diff include a plan / spec / ARD / design doc (e.g. `*.md` under `docs/`, `plans/`, `specs/`, `adr/`, `ard/`, or files named `PLAN.md`, `SPEC.md`, `DESIGN.md`)? If so, treat them as the **source of truth** for intent and flag drift in step 4. Read them in full before reading the code.
 
-**Pre-checks — before reading code:**
-
-Check CI status. Don't spend time reviewing code that doesn't build:
-```bash
-gh pr checks <pr>
-```
-If CI is failing, mention it in the review and focus on the failure cause rather than a full review.
-
-Check for existing reviews to avoid duplicating feedback:
-```bash
-gh api repos/$OWNER_REPO/pulls/<pr>/reviews \
-  --jq '.[] | {user: .user.login, state: .state, submitted_at: .submitted_at}'
-```
-If other reviewers have already left comments, read them and avoid repeating the same points.
+**Pre-checks:**
+- `gh pr checks <pr>` — if CI is failing, focus on the failure cause rather than a full review.
+- Fetch existing reviews/comments (see references) so you don't duplicate feedback.
 
 ### 2) Get the diff and prioritize
 
 ```bash
 gh pr diff <pr> --name-only
-
-gh pr diff <pr> --patch --color=never
-
-# For large PRs, save to file to avoid flooding context
-gh pr diff <pr> --patch --color=never > /tmp/pr.diff
+gh pr diff <pr> --patch --color=never > /tmp/pr.diff  # for large PRs
 ```
 
-**Prioritize high-risk files first:**
-- Business logic, auth, payments, data mutations
-- Files with high churn (many additions/deletions)
-- New files (need full design review)
-- Config changes (infra, CI, permissions)
+**Prioritize:** business logic, auth, payments, data mutations; high-churn files; new files (need full design review); config/infra/CI/permissions.
 
-**Deprioritize or skip:**
-- Auto-generated files (lock files, snapshots, migrations with no custom SQL)
-- Pure formatting/rename changes
-- Vendor/dependency updates (unless pinning matters)
+**Deprioritize/skip:** auto-generated files (lock files, snapshots, generated migrations); pure formatting/rename; vendor updates (unless pinning matters).
 
 ### 3) Read changed files in context
 
-Don't review diffs in isolation. For non-trivial changes, read the full file (or at minimum the surrounding function/class) to understand:
-- What the code looked like before the change
-- How the change fits into the broader module
-- Whether the change introduces inconsistencies with nearby code
+For non-trivial changes, read the full file (or surrounding function/class) — not just the diff — to understand the before-state, broader module, and any new inconsistencies with nearby code.
 
-If already on the PR branch, use the Read tool directly. Otherwise, either check out the branch first:
-```bash
-gh pr checkout <pr>
-```
-Or fetch a specific file via the API without switching branches:
+If already on the PR branch, use Read directly. Otherwise `gh pr checkout <pr>`, or fetch one file at HEAD:
 ```bash
 gh api repos/$OWNER_REPO/contents/<path>?ref=$COMMIT_SHA --jq '.content' | base64 -d
 ```
@@ -111,123 +71,94 @@ gh api repos/$OWNER_REPO/contents/<path>?ref=$COMMIT_SHA --jq '.content' | base6
 
 **Before flagging an issue, apply the "should I flag this?" test:**
 
-1. It meaningfully impacts correctness, performance, security, or maintainability.
-2. It is discrete and actionable — not a vague concern or multiple issues bundled together.
-3. It was introduced in this PR — do not flag pre-existing issues (mention them in the review body if important).
-4. The fix does not demand a level of rigor absent from the rest of the codebase.
-5. The original author would likely fix it if they were aware of it.
-6. It does not rely on unstated assumptions about the codebase or author's intent.
-7. It is provably a problem — speculation that a change *may* break something else is not enough; you must identify the affected code.
-8. It is clearly not an intentional choice by the author.
+1. Meaningfully impacts correctness, performance, security, or maintainability.
+2. Discrete and actionable — not vague, not bundled.
+3. Introduced in this PR — don't flag pre-existing issues (mention in review body if important).
+4. Doesn't demand a level of rigor absent from the rest of the codebase.
+5. The author would likely fix it if aware.
+6. Doesn't rely on unstated assumptions about codebase or author intent.
+7. Provably a problem — identify the affected code, not "this *may* break".
+8. Clearly not an intentional choice.
 
-If a potential finding fails any of these tests, do not post it. If there are no findings that a person would definitely want to see and fix, prefer outputting zero findings over forcing low-value comments.
+If a finding fails any test, don't post it. If there are no findings a person would definitely want to fix, output zero — an empty review is better than a noisy one.
 
 For each changed file, systematically check:
 
 **Correctness**
-- Does the logic match the stated intent from the PR description?
-- Are edge cases handled (nulls, empty collections, boundary values)?
-- Are error paths correct (not swallowed, not leaking internals)?
+- Does the logic match the stated intent?
+- **Spec drift (when the PR includes a plan / spec / ARD / design doc)** — walk every requirement, API shape, and decision against the code; missing/renamed/extra behavior is itself a P1/P2 finding, cite the doc section. If the doc was edited in this PR, check whether the edit is justified or was back-fitted to match the code.
+- Edge cases (nulls, empty collections, boundary values).
+- Error paths (not swallowed, not leaking internals).
 
 **Security**
-- Input validation on trust boundaries (user input, API params)
-- No secrets, credentials, or PII in code
-- Safe handling of auth tokens, sessions, permissions
-- No injection vulnerabilities (SQL, XSS, command, path traversal)
+- Input validation on trust boundaries.
+- No secrets, credentials, or PII in code.
+- Safe handling of auth tokens, sessions, permissions.
+- No injection (SQL, XSS, command, path traversal).
 
 **Reliability**
-- Concurrency safety (race conditions, shared mutable state)
-- Resource cleanup (connections, file handles, subscriptions)
-- Retry/timeout behavior (infinite loops, missing backoff)
-- Failure modes (what happens when a dependency is down?)
+- Concurrency safety (races, shared mutable state).
+- Resource cleanup (connections, file handles, subscriptions).
+- Retry/timeout behavior (infinite loops, missing backoff).
+- Failure modes (what happens when a dependency is down?).
 
 **Performance**
-- N+1 queries, missing indexes for new query patterns
-- Unnecessary allocations in hot paths
-- Missing pagination for unbounded result sets
+- N+1 queries, missing indexes for new query patterns.
+- Unnecessary allocations in hot paths.
+- Missing pagination for unbounded result sets.
 
 **API design & contracts**
-- Breaking changes to public APIs
-- Consistent naming and parameter ordering
-- Backward compatibility where expected
+- Breaking changes to public APIs.
+- Consistent naming and parameter ordering.
+- Backward compatibility where expected.
 
 **Tests**
-- Are new code paths covered by tests?
-- Do tests assert meaningful behavior (not just "no crash")?
-- Are edge cases from the correctness check tested?
+- Are new code paths covered?
+- Do tests assert meaningful behavior, not just "no crash"?
+- Are correctness-check edge cases tested?
 
 **Clarity**
-- Could a team member understand this in 6 months?
-- Are names descriptive? Is the abstraction level consistent?
-- Only flag naming/style if it causes genuine confusion — don't nitpick.
+- Could a teammate understand this in 6 months?
+- Descriptive names, consistent abstraction level.
+- Only flag style if it causes genuine confusion.
 
 ### 5) Draft findings
 
 For each issue, record:
-- **Priority**: P0 / P1 / P2 / P3
-- **File path** and **line number** (see [line number mapping](#diff-line-number-mapping) below)
-- **Title**: imperative, ≤80 chars, prefixed with priority tag (e.g. `[P1] Add max-attempts guard to retry loop`)
-- **Body**: one paragraph explaining *why* this is a problem and the scenarios/inputs that trigger it
-- **Suggestion**: recommended fix (use a `suggestion` block for concrete replacements)
+- **Priority** — P0 / P1 / P2 / P3.
+- **File path** and **line number** — see [line-number mapping](references/gh-cli.md#unified-diff-line-number-mapping) for converting diff hunks to absolute lines.
+- **Title** — imperative, ≤80 chars, priority-tag prefix (e.g. `[P1] Add max-attempts guard to retry loop`).
+- **Body** — one paragraph explaining *why* and the scenarios/inputs that trigger it.
+- **Suggestion** — `suggestion` block for concrete replacements.
 
 **Priority definitions:**
-- **P0** — Drop everything. Blocking release or operations. Only use for universal issues that do not depend on assumptions about inputs.
-- **P1** — Urgent. Correctness bugs, security vulnerabilities, data loss risk. Should be addressed in the next cycle.
-- **P2** — Normal. Reliability concerns, performance issues, missing error handling, API design problems. To be fixed eventually.
-- **P3** — Low. Clarity improvements, minor style issues, optional refactors. Nice to have.
+- **P0** — Drop everything. Blocks release. Universal issues only — no input-dependent assumptions.
+- **P1** — Urgent. Correctness bugs, security, data loss. Address next cycle.
+- **P2** — Normal. Reliability, performance, missing error handling, API design.
+- **P3** — Low. Clarity, minor style, optional refactors.
 
 **Comment writing rules:**
-1. The body must be at most one paragraph. No unnecessary line breaks.
-2. Clearly state the scenarios, environments, or inputs required for the issue to manifest. Communicate that severity depends on these factors.
-3. Do not include code chunks longer than 3 lines in the body. Use `suggestion` blocks for concrete fixes instead.
-4. Use `suggestion` blocks ONLY for concrete replacement code — no commentary inside the block.
-5. In suggestion blocks, preserve the exact leading whitespace of the replaced lines.
-6. Keep line ranges as short as possible (≤5–10 lines). Pick the subrange that pinpoints the problem.
-7. Tone should be matter-of-fact — not accusatory, not flattering. Avoid "Great job...", "Thanks for...".
-8. The author should be able to immediately grasp the issue without close reading.
+1. Body ≤ one paragraph. No unnecessary line breaks.
+2. State the scenarios/inputs needed for the issue to manifest — severity depends on these.
+3. No code chunks >3 lines in the body. Use `suggestion` blocks for concrete fixes.
+4. `suggestion` blocks contain ONLY replacement code, no commentary. Preserve exact leading whitespace.
+5. Keep line ranges short (≤5–10). Pick the subrange that pinpoints the problem.
+6. Matter-of-fact tone — not accusatory, not flattering. No "Great job", "Thanks for".
+7. The author should grasp the issue without close reading.
 
-Also note things done well — good patterns, thorough edge-case handling, clean abstractions. Keep it brief: one sentence, no flattery, just acknowledgment.
-
-Follow the [comment tone guidelines](#comment-tone) and [noise control rules](#when-not-to-comment) below.
+Also briefly note things done well — one sentence, no flattery.
 
 ### 6) Submit (or, in interactive mode, present the draft)
 
-Both modes build the same JSON payload as a temp file — only the final step (POST vs. pause for discussion) differs.
-
-**Build the JSON payload as a temp file** to avoid shell escaping issues (backticks in suggestion blocks break heredocs).
-
-Write the review payload to a temp file using the Write tool (use the `$COMMIT_SHA` captured in step 1):
-
-```json
-{
-  "commit_id": "<COMMIT_SHA value>",
-  "event": "REQUEST_CHANGES",
-  "body": "## Review summary\n\nPatch is incorrect. 1 P1, 1 P2 found.\n\n### Positive\n- Clean separation of retry logic into its own module.",
-  "comments": [
-    {
-      "path": "src/service/retry.ts",
-      "line": 42,
-      "side": "RIGHT",
-      "body": "**[P1]** Add max-attempts guard to retry loop\n\nIf the upstream service is down, this retries indefinitely, exhausting the connection pool and cascading to all other requests. This triggers whenever the service returns a transient error for longer than a few seconds.\n\n```suggestion\nfor (let attempt = 0; attempt < MAX_RETRIES; attempt++) {\n```"
-    },
-    {
-      "path": "src/api/handler.ts",
-      "line": 15,
-      "side": "RIGHT",
-      "body": "**[P2]** Validate `userId` parameter before use\n\nIf a caller passes a non-numeric string, `parseInt` returns `NaN` which propagates silently through the query, returning an empty result instead of a 400 error."
-    }
-  ]
-}
-```
+Both modes build the same JSON payload as a temp file (use `$COMMIT_SHA` from step 1) — only the final step differs. **Build the payload via the Write tool**, not heredocs — backticks in suggestion blocks break shell escaping. Payload shape, `gh api` command, and event semantics live in [references/gh-cli.md](references/gh-cli.md#submitting-a-batched-review-preferred).
 
 **Review verdicts:**
-- `APPROVE` — no P0/P1 issues, the patch is correct
-- `REQUEST_CHANGES` — has P0 or P1 issues that must be fixed before merge
-- `COMMENT` — only P2/P3 issues, or you want discussion without blocking
+- `APPROVE` — no P0/P1, patch is correct.
+- `REQUEST_CHANGES` — has P0/P1 blocking merge.
+- `COMMENT` — only P2/P3, or you want discussion without blocking.
 
 #### Auto-post mode
 
-Submit directly:
 ```bash
 gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.json
 ```
@@ -236,55 +167,26 @@ gh api -X POST repos/$OWNER_REPO/pulls/<pr>/reviews --input /tmp/review-payload.
 
 Runs in two phases. **Both must happen** — do not end the skill after Phase 1.
 
-##### Phase 1 — Initial draft cycle
+**Phase 1 — initial draft cycle**
+- Tell the user the payload path (`/tmp/review-payload-<pr>.json`) and show a preview of every comment (priority, `file:line`, body, suggestion) plus the proposed verdict and summary. State nothing has been posted.
+- Iterate by editing `/tmp/review-payload-<pr>.json` in place via Read + Write. Do not POST between iterations.
+- POST only on explicit approval ("post it", "ship it", "post 吧", "可以了"). Treat "looks good" / "ok" as ambiguous — confirm once more.
+- After posting, render the summary (step 7) and immediately enter Phase 2.
 
-Do NOT POST yet.
+**Phase 2 — ongoing discussion (follow-up comments)**
+- **Don't be a stenographer.** Apply the should-I-flag-this test — push back briefly on pre-existing, speculative, or pure-preference concerns. Only proceed when you both agree.
+- **Refresh `$COMMIT_SHA`** (author may have pushed) and re-verify the target `file:line` at HEAD still says what you think.
+- **Draft** per step 5 rules, show it, wait for explicit approval.
+- **POST in the smallest sensible unit:**
+  - One finding → inline comment via `gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments --input <file>` with `{body, commit_id, path, line, side: "RIGHT"}`.
+  - Several at once → mini-review with `event: "COMMENT"` (no verdict change), same payload shape as Phase 1.
+  - Continuing a thread → `gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments/<comment_id>/replies -f body='...'`.
+  - Correcting your own comment → `gh api -X PATCH repos/$OWNER_REPO/pulls/comments/<comment_id> -f body='...'`.
+- Render a per-batch summary (step 7) and stay open. Phase 2 ends only when the user says so ("done", "可以了", "收工").
 
-1. Tell the user the payload path (e.g. `/tmp/review-payload-<pr>.json`) and show a human-readable preview of every comment — priority, `file:line`, body, suggestion (as a code block), plus the proposed verdict and summary.
-2. Make clear nothing has been posted, then iterate. For each requested change, update `/tmp/review-payload-<pr>.json` in place via Read + Write. Do not POST between iterations.
-3. POST only on explicit approval ("post it", "ship it", "post 吧", "可以了"). Treat ambiguous responses ("looks good", "ok") as a request to confirm once more.
-4. After posting, render a brief summary (step 7) and immediately enter Phase 2.
+If re-invoked mid-discussion without history, list what's already posted (existing reviews/comments — see references) before drafting.
 
-##### Phase 2 — Ongoing discussion (follow-up comments)
-
-After the initial post, the human keeps reviewing and will surface new concerns. For each one:
-
-1. **Don't be a stenographer.** Apply the [should-I-flag-this test](#4-analyze-using-the-review-checklist) — push back briefly if the concern is pre-existing, speculative, or pure preference. Only proceed when you both agree it's worth posting.
-2. **Refresh `$COMMIT_SHA`** (`gh pr view <pr> --json headRefOid --jq .headRefOid`) — author may have pushed since. Verify the target `file:line` at HEAD still says what you think.
-3. **Draft** per step 5 rules, show it, wait for explicit approval.
-4. **POST in the smallest sensible unit:**
-   - **One finding** → one inline comment. Write `/tmp/comment-<pr>-<n>.json` with `{body, commit_id, path, line, side: "RIGHT"}` and `gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments --input <file>`.
-   - **Several at once** → mini-review with `event: "COMMENT"` (no verdict change), same payload shape as Phase 1.
-   - **Continuing an existing thread** → `gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments/<comment_id>/replies -f body='...'`.
-   - **Correcting your own comment** → `gh api -X PATCH repos/$OWNER_REPO/pulls/comments/<comment_id> -f body='...'`.
-5. Render a short per-batch summary (step 7) and stay open. Phase 2 ends only when the user says so ("done", "可以了", "收工").
-
-If re-invoked mid-discussion without history, list what's already posted before drafting:
-```bash
-gh api repos/$OWNER_REPO/pulls/<pr>/reviews --jq '.[] | {id, user: .user.login, state, body, submitted_at}'
-gh api repos/$OWNER_REPO/pulls/<pr>/comments --jq '.[] | {id, path, line, body, user: .user.login}'
-```
-
-#### Fallback (both modes)
-
-If the Reviews API fails when posting, degrade gracefully:
-
-1. Post each inline comment individually (preserves line-level feedback):
-```bash
-gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments \
-  -f body='...' \
-  -f commit_id="$COMMIT_SHA" \
-  -f path='src/handler.ts' \
-  -f line=15 \
-  -f side='RIGHT'
-```
-
-2. Last resort — if inline comments are also unavailable, post a general comment summarizing all findings:
-```bash
-gh pr review <pr> --comment -b "..."
-```
-
-See [references/gh-cli.md](references/gh-cli.md) for multi-line comments, suggestion syntax, and API details.
+**Fallback:** if the Reviews API fails, post inline comments individually; last resort, post a general comment summarizing findings. Commands in [references/gh-cli.md](references/gh-cli.md#individual-comments-fallback).
 
 ### 7) Output summary
 
@@ -293,119 +195,57 @@ Render a summary for the user (not posted to GitHub) after each post. Include an
 - **Auto-post**: render once, skill ends.
 - **Interactive**: render after Phase 1's post and after each Phase 2 batch. Follow-up summaries are smaller — what was just posted plus a running tally — and end with a reminder you're still waiting for the next concern.
 
+Skeleton:
 ```
 ## Review posted
+**Verdict**: <APPROVE | REQUEST_CHANGES | COMMENT>
+**Overall correctness**: <one sentence — does the patch break things, with the specific failure mode>
+**Findings**: <counts by priority>
 
-**Verdict**: REQUEST_CHANGES
-**Overall correctness**: patch is incorrect — the unbounded retry loop will exhaust the connection pool under sustained upstream failures.
-**Findings**: 1 P1, 2 P2, 1 P3
-
-### P1
-- retry.ts:42 — Unbounded retry loop exhausts connection pool
-
-### P2
-- handler.ts:15 — Missing userId validation returns empty result instead of 400
-- auth.ts:88 — Token expiry not checked before downstream call
-
-### P3
-- utils.ts:7 — Ambiguous variable name `d` could be `durationMs`
+### P0 / P1 / P2 / P3
+- <file:line — short title>
 
 ### Positive
-- Clean separation of retry logic into its own module
+- <one-sentence acknowledgments>
 
 ### Not reviewed
-- package-lock.json (auto-generated)
+- <files skipped and why>
 ```
 
 ---
 
-## Comment tone
+## Tone and noise control
 
-**Matter-of-fact, not adversarial.** Read as a helpful assistant — not a human reviewer trying to prove a point. Avoid excessive flattery ("Great job...") and vague negativity ("This is wrong.").
+**Matter-of-fact, not adversarial.** Avoid flattery ("Great job...") and vague negativity ("This is wrong.").
 
-**Lead with the scenario.** State the conditions under which the issue manifests so the author can immediately assess severity:
-- Good: "**[P1]** If the upstream service returns transient errors for >5s, this retries indefinitely, exhausting the connection pool and cascading to all other requests."
-- Bad: "**[P1]** Infinite retry."
+**Lead with the scenario** — state the conditions under which the issue manifests so the author can assess severity. Good: "If the upstream service returns transient errors for >5s, this retries indefinitely, exhausting the connection pool." Bad: "Infinite retry."
 
-**Ask when the intent is ambiguous.** If the code might be intentional, frame as a question:
-- "Is this intentionally unbounded? If a caller passes a large dataset, this could OOM."
+**Ask when intent is ambiguous.** Frame as a question: "Is this intentionally unbounded? If a caller passes a large dataset, this could OOM."
 
-**Distinguish blocking from non-blocking.** Use priority tags consistently. Prefix optional suggestions with `nit:` so the author knows they can skip them.
+**Distinguish blocking from non-blocking.** Use priority tags consistently. Prefix optional suggestions with `nit:`.
 
-**One comment per issue.** Don't pile multiple unrelated concerns into a single comment. Each comment should be independently addressable.
+**One comment per issue.** Each must be independently addressable.
 
-## When NOT to comment
+**Don't comment on:**
+- Style a linter/formatter should catch (indentation, import order). If tooling doesn't enforce it, don't review it.
+- Things another reviewer already flagged. At most "+1" if critical.
+- Obvious or trivial code. Silence means approval.
 
-Noisy reviews dilute the important feedback. Every finding must pass the [should-I-flag-this test](#4-analyze-using-the-review-checklist). Beyond that, avoid commenting on:
-
-- **Style that a linter/formatter should catch** — indentation, trailing whitespace, import order. If it's not enforced by tooling, it's not worth a review comment.
-- **Pre-existing issues** — do not flag bugs that were not introduced in this PR. Mention them in the review body if critical, never as inline comments.
-- **Speculative breakage** — "this *might* break X" is not a finding. You must identify the specific code path that is provably affected.
-- **Pure preference disagreements** — "I would have used X instead of Y" is not a finding unless Y has a concrete, demonstrable downside.
-- **Obvious or trivial code** — don't add "this looks fine" comments. Silence means approval.
-- **Things another reviewer already flagged** — don't pile on. At most, "+1" if you think it's critical.
-
-**Rule of thumb:** if the original author would not fix the issue upon reading your comment, don't post it. If you have zero qualifying findings, output zero findings — an empty review is better than a noisy one.
-
-## Diff line number mapping
-
-Getting line numbers right is critical for inline comments. The GitHub API `line` field refers to **absolute line numbers in the file**, not positions within the diff hunk.
-
-From unified diff output:
-```
-@@ -10,5 +12,6 @@ function example() {
-  context line        ← line 12 in new file
-  context line        ← line 13
-+ added line          ← line 14 (this is a RIGHT side line)
-+ added line          ← line 15
-  context line        ← line 16
-- deleted line        ← (LEFT side only, line 13 in old file)
-  context line        ← line 17
-```
-
-- The `+12,6` means this hunk starts at **line 12** in the new file and spans 6 lines.
-- Count from the start through context lines (` `) and added lines (`+`) to get the absolute line number for RIGHT side comments.
-- Lines starting with `-` exist only in the old file (LEFT side) — skip them when counting new-file line numbers.
-
-When in doubt, use the Read tool to open the file and verify the line number matches the code you want to comment on.
+The should-I-flag-this test at step 4 already covers pre-existing issues, speculation, and pure preferences — apply it before posting anything.
 
 ## Re-review workflow
 
-When the author pushes fixes and requests a re-review:
+When the author pushes fixes:
 
-1. **Check what changed since your last review:**
-```bash
-# Compare the old review commit to the current HEAD
-gh pr view <pr> --json headRefOid --jq .headRefOid
-# Then diff between the old and new HEAD
-git diff <old-commit-sha>..<new-commit-sha>
-```
-
-2. **Verify each previous issue was addressed.** Go through your prior comments and check if the fix is correct — not just that the code changed, but that the fix actually resolves the concern.
-
-3. **Check for regressions.** Sometimes fixes introduce new problems. Scan the new changes with the same checklist.
-
-4. **Submit a follow-up review** with the appropriate verdict:
-   - `APPROVE` if all P0/P1 issues are resolved and the patch is correct
-   - `REQUEST_CHANGES` if P0/P1 issues remain or new ones were introduced
-   - `COMMENT` if you want to acknowledge progress but aren't ready to approve
-
-5. **Dismiss your stale review** if it's no longer relevant:
-```bash
-REVIEW_ID=$(gh api repos/$OWNER_REPO/pulls/<pr>/reviews \
-  --jq '[.[] | select(.state == "CHANGES_REQUESTED")][0].id')
-gh api -X PUT repos/$OWNER_REPO/pulls/<pr>/reviews/$REVIEW_ID/dismissals \
-  -f message="Issues addressed in latest push"
-```
+1. Diff `<old-sha>..HEAD` to see what changed since your last review.
+2. Verify each prior issue is **actually resolved** — not just that the code changed.
+3. Scan new changes for regressions using the same checklist.
+4. Submit a follow-up review with verdict per step 6. Optionally dismiss your stale `CHANGES_REQUESTED` review (commands in [references/gh-cli.md](references/gh-cli.md#re-review-commands)).
 
 ## Handling large PRs (>500 lines changed)
 
-1. Classify each file by risk tier using the prioritization criteria from step 2.
-2. Review high-risk files thoroughly (full context, full checklist).
-3. Scan medium-risk files for high-severity issues only.
-4. Skip low-risk files (generated, lock files, etc.) — list them as "not reviewed."
-5. If the PR is too large to review effectively, say so and suggest the author split it.
+Classify each file by risk tier using step 2 prioritization. Review high-risk files thoroughly (full context + checklist). Scan medium-risk for high-severity issues only. Skip low-risk (generated, lock files) and list as "not reviewed." If the PR is too large to review effectively, say so and suggest splitting.
 
 ## References
 
-- [references/gh-cli.md](references/gh-cli.md) for command patterns, Reviews API, and suggestion block syntax.
+- [references/gh-cli.md](references/gh-cli.md) — repo/PR metadata commands, diff inspection, Reviews API payload, suggestion block syntax, unified-diff line-number mapping, re-review commands, individual-comment fallback.
