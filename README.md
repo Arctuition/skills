@@ -37,7 +37,7 @@ Specialized skills (use these when they fit):
 
 Catch-all (used only when none of the specialized skills fit):
 
-- **[html-artifact](./skills/html-artifacts/html-artifact/SKILL.md)** — General single-file HTML for the long tail: status reports, incident timelines, slide decks, concept explainers, design comparisons, dashboards, prototypes. Picks one of five shapes (Report / Comparison / Explainer / Dashboard / Prototype) based on the request.
+- **[html-artifact](./skills/html-artifacts/html-artifact/SKILL.md)** — General single-file HTML for the long tail: status reports, incident timelines, slide decks, concept explainers, design comparisons, dashboards, prototypes. Enforces the shared design tokens; content and structure are left to the user and the material.
 
 ## Adding a Skill
 
