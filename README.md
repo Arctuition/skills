@@ -24,6 +24,7 @@ Skills that operate on code and tickets.
 - **[pr-code-review](./skills/engineering/pr-code-review/SKILL.md)** — Review GitHub PRs via `gh`. Posts inline comments on specific lines and submits a single batched review with a P0–P3 priority summary and a verdict. Supports an **interactive mode** ("interactive review", "手动挡", "discuss before posting") that drafts everything locally and waits for explicit approval before posting — and keeps the session open afterwards to collaborate on follow-up comments as the human reviewer surfaces more issues.
 - **[sentry-issue-resolver](./skills/engineering/sentry-issue-resolver/SKILL.md)** — Fetch a Sentry issue with full stack trace and event context, then walk the root cause and propose a fix.
 - **[signoff](./skills/engineering/signoff/SKILL.md)** — Wrap up the change in your working tree and open a PR: branch off main/master, commit only the files you touched (never others' staged/untracked work), push, open the PR following `.github/PULL_REQUEST_TEMPLATE.md`, and open it in the browser. Targets the `upstream` remote's default branch when one exists.
+- **[stack-pr](./skills/engineering/stack-pr/SKILL.md)** — Analyze committed changes on the current branch, propose a dependency-ordered stacked PR plan, then after explicit approval create upstream stacked PRs in review/merge order.
 
 ### HTML Artifacts
 
