@@ -1,6 +1,6 @@
 ---
 name: stack-pr
-description: Analyze committed changes on the current local branch, propose a dependency-ordered stacked PR plan, then after explicit approval create multiple upstream stacked PRs. Use when the user asks to "stack this PR", "create a PR stack", "split this branch into PRs", "split PR", "拆 PR", "分开 signoff", or says a branch/PR is too big to review.
+description: Analyze committed changes on the current local branch, propose a dependency-ordered stacked PR plan, then after explicit approval create multiple upstream stacked PRs. Use when the user asks to "stack this PR", "create a PR stack", "split this branch into PRs", "split PR", "拆 PR", "split into reviewable PRs", or says a branch/PR is too big to review.
 ---
 
 # Stack PR
@@ -18,7 +18,7 @@ This skill only creates new stacks. It does not update, overwrite, retarget, clo
 
 ## Hard rules
 
-- Respond to the user in the user's language. For ArcSite engineering repos, default branch names, commit messages, PR titles, and PR bodies to English unless the user asks otherwise.
+- Respond to the user in the user's language. Generate branch names, commit messages, PR titles, and PR bodies in the repository's dominant language unless the user asks otherwise.
 - Use only committed changes from the current branch by default. Exclude staged, unstaged, and untracked files unless the user explicitly changes scope.
 - Never rewrite, rebase, reset, delete, force-push, or otherwise modify the original source branch.
 - Prefer a temporary `git worktree` for stack construction so the user's checkout remains on the source branch.
@@ -125,10 +125,9 @@ Cluster changes by the dimension that produces clean, independently reviewable s
 - Risk: pure refactor, additive feature, feature flag, visible behavior.
 - Commit intent: extract, introduce, wire, polish.
 
-ArcSite defaults:
+Splitting defaults:
 
 - Keep pre-existing-code refactors out of feature PRs. Put refactors in an earlier PR when they are needed.
-- For Jinja2 to BlockNote widget migration rounds, do not split per widget by default. Flag the pattern and ask before splitting anyway.
 - Split genuinely oversized work aggressively, but keep indivisible changes together.
 
 Sizing target: keep each PR under roughly 400 net lines when practical. Larger PRs are allowed only when the scope is genuinely indivisible; state why splitting further would make the stack less reviewable or less mergeable.
@@ -148,12 +147,12 @@ Format:
 Example:
 
 ```text
-arc-3510-blocknote-import/01-field-data-schema
-arc-3510-blocknote-import/02-pdf-import-adapter
-arc-3510-blocknote-import/03-editor-wiring
+billing-export/01-shared-format-types
+billing-export/02-export-service
+billing-export/03-admin-ui-wiring
 ```
 
-Check local and target remote branch names before execution. If there is a collision, select a new non-conflicting prefix such as `arc-3510-blocknote-import-v2` and show it in the plan. Never delete, overwrite, or force-push existing branches.
+Check local and target remote branch names before execution. If there is a collision, select a new non-conflicting prefix such as `billing-export-v2` and show it in the plan. Never delete, overwrite, or force-push existing branches.
 
 ## 5) Choose extraction strategy
 
