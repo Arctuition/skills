@@ -1,6 +1,6 @@
 ---
 name: pr-fix-loop
-description: Iteratively detect and fix everything outstanding on a GitHub PR — CI failures, bot review findings, and human inline comments — then push, wait for CI, and re-scan until nothing actionable remains. Use when asked to "fix the remaining issues on a PR", "address PR feedback", "loop until CI is green", "auto-fix PR comments", or 检查 PR 状态和 comment 自动修复 / 修到没有新 finding 为止. Author-side by default; runs on any PR branch you have push access to.
+description: Iteratively detect and fix everything outstanding on a GitHub PR — CI failures, bot review findings, and human inline comments — then push, wait for CI, and re-scan until nothing actionable remains. Use when asked to "fix the remaining issues on a PR", "address PR feedback", "loop until CI is green", "auto-fix PR comments", "run a final fix pass before merge", or 检查 PR 状态和 comment 自动修复 / 修到没有新 finding 为止. Author-side by default; runs on any PR branch you have push access to, including PRs that already look ready to merge.
 ---
 
 # PR Fix Loop
@@ -8,6 +8,11 @@ description: Iteratively detect and fix everything outstanding on a GitHub PR �
 Drive a PR to "done" by looping: scan for findings → triage → fix the clear ones → quick-check
 locally → commit → reply → push → wait for CI → re-scan. Stop when CI is green and no actionable
 finding remains, or when something needs your call.
+
+A PR that is already green, mergeable, or marked ready to merge can still enter this loop when the
+user asks for a final fix pass. Do not skip preflight or scans just because the current PR state
+looks clean; run the same CI/comment/bot scan once, then stop immediately if nothing actionable is
+found.
 
 This is the author's side of code review: instead of producing findings, it closes them out. Every
 gh command the loop needs — repo context, CI status and `checks --watch`, the GraphQL review-thread
@@ -48,13 +53,17 @@ Refresh `HEAD_SHA` each pass (others may have pushed). Scan exactly these three;
 top-level review bodies and issue comments (too discussion-heavy to act on safely):
 
 1. **CI failures** — `gh pr checks <pr> --json name,state,bucket,link`. Any `bucket: fail`.
-2. **Bot findings** — inline comments from `*[bot]` logins (codex, claude, coderabbit, copilot),
-   usually carrying a `P0`–`P3` badge.
+2. **Bot findings** — unresolved inline comments from bot or bot-like reviewer accounts, including
+   `*[bot]` logins plus connector accounts such as `chatgpt-codex-connector`, `claude`,
+   `coderabbitai`, and `copilot`. Do not require a `[bot]` suffix. Their finding bodies usually
+   carry a `P0`–`P3` badge.
 3. **Human inline comments** — open review threads from the GraphQL query.
 
 Use the GraphQL `reviewThreads` query (not REST) so you get `isResolved` and the full reply chain.
 Per the dedup rule (below), drop threads that are resolved or already carry our `addressed in <sha>`
-reply at/under HEAD. Commands: [gh-loop.md](references/gh-loop.md#inline-review-comments--thread-resolution-state-graphql).
+reply at/under HEAD. Do not drop unresolved bot-like findings because the PR is mergeable, CI is
+green, review decision is empty, or a bot check was skipped. Commands:
+[gh-loop.md](references/gh-loop.md#inline-review-comments--thread-resolution-state-graphql).
 
 ## 2) Triage into three buckets
 

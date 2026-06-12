@@ -64,8 +64,10 @@ query($owner:String!, $repo:String!, $pr:Int!) {
           isResolved
           isOutdated
           path
+          line
+          originalLine
           comments(first:50) {
-            nodes { databaseId author { login } body createdAt }
+            nodes { databaseId author { login } body createdAt isMinimized minimizedReason }
           }
         }
       }
@@ -85,9 +87,14 @@ Per thread, the loop derives state from this payload:
 
 ## Bot findings
 
-Bot reviewers have logins ending in `[bot]` — `chatgpt-codex-connector[bot]`, `claude[bot]`,
-`coderabbitai[bot]`, `copilot`. Their finding bodies usually carry a priority badge
-(`P0`–`P3`); parse it to seed the triage priority.
+Bot reviewers often have logins ending in `[bot]`, but connector accounts may not. Treat these as
+bot-like reviewers even without a `[bot]` suffix: `chatgpt-codex-connector`, `claude`,
+`coderabbitai`, and `copilot`. Their finding bodies usually carry a priority badge (`P0`–`P3`);
+parse it to seed the triage priority.
+
+Do not use PR mergeability, review decision, or check status as a proxy for whether bot findings
+remain. For example, a PR can be clean/ready to merge while still having unresolved
+`chatgpt-codex-connector` review threads. The thread's `isResolved` state is the source of truth.
 
 ## Reply on a thread (loop's write-back)
 
