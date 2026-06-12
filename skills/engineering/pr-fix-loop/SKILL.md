@@ -9,12 +9,10 @@ Drive a PR to "done" by looping: scan for findings → triage → fix the clear 
 locally → commit → reply → push → wait for CI → re-scan. Stop when CI is green and no actionable
 finding remains, or when something needs your call.
 
-This is the **author-side counterpart** to `pr-code-review`. It reuses that skill's gh patterns —
-repo context, PR metadata, inline-comment fetch, the Reviews API, line-number mapping all live in
-[`../pr-code-review/references/gh-cli.md`](../pr-code-review/references/gh-cli.md). Loop-specific
-commands — `checks --watch`, the GraphQL thread query, the reply API, CI-log fetch, the per-round
-commit — live in [references/gh-loop.md](references/gh-loop.md). The commit step follows the
-`signoff` discipline (stage only your own files).
+This is the author's side of code review: instead of producing findings, it closes them out. Every
+gh command the loop needs — repo context, CI status and `checks --watch`, the GraphQL review-thread
+query, the reply API, CI-log fetch, and the per-round commit — lives in
+[references/gh-loop.md](references/gh-loop.md).
 
 **Prerequisite:** `gh` installed and authenticated (`gh auth status`).
 
@@ -108,7 +106,7 @@ the same round, not a new finding).
 ## 6) Commit and reply
 
 **One commit per round.** Stage only the files you changed this round, by path — never `git add -A`,
-`.`, or `-a` (the `signoff` golden rule; on a shared branch this matters most). Message summarizes
+`.`, or `-a`; on a shared branch, sweeping up someone else's work is the worst failure mode. Message summarizes
 the findings addressed; include the co-author trailer. Then capture the new sha and reply on each
 addressed thread with `addressed in <sha>: <one line>` — **do not resolve** the thread.
 Commands: [gh-loop.md](references/gh-loop.md#commit--push-per-round) and

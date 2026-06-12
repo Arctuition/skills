@@ -1,14 +1,13 @@
 # gh CLI reference for the PR fix loop
 
-Loop-specific commands only. Shared patterns — repo context, PR metadata, inline-comment
-fetch, the Reviews API, line-number mapping — live in
-[`../../pr-code-review/references/gh-cli.md`](../../pr-code-review/references/gh-cli.md).
-Verify flags with `gh <command> --help` if unsure.
+Every gh command the loop uses, in workflow order. Self-contained — verify flags with
+`gh <command> --help` if unsure.
 
 ## Context every round needs
 
 ```bash
 OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+OWNER=${OWNER_REPO%/*}; REPO=${OWNER_REPO#*/}                    # for the GraphQL variables below
 ME=$(gh api user --jq .login)                                   # to find our own "addressed in" replies
 HEAD_SHA=$(gh pr view <pr> --json headRefOid --jq .headRefOid)  # refresh every round — others may push
 ```
@@ -75,7 +74,7 @@ query($owner:String!, $repo:String!, $pr:Int!) {
 }'
 ```
 
-(`-F pr=<pr>` passes an int; `-F owner=… -F repo=…` after splitting `$OWNER_REPO` on `/`.)
+(`-F pr=<pr>` passes an int; `$OWNER` / `$REPO` come from the Context block above.)
 
 Per thread, the loop derives state from this payload:
 
@@ -106,8 +105,8 @@ calls it by default.
 
 ## Commit & push (per round)
 
-Follow the `signoff` discipline — stage only files you changed this round, by path; never
-`git add -A`/`.`/`-a`.
+Stage only files you changed this round, by path; never `git add -A`/`.`/`-a` — on a shared
+branch, sweeping up someone else's uncommitted work is the worst failure mode.
 
 ```bash
 git add <only the files this round touched>
