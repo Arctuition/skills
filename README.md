@@ -25,6 +25,7 @@ Skills that operate on code and tickets.
 - **[pr-fix-loop](./skills/engineering/pr-fix-loop/SKILL.md)** — The author-side counterpart to `pr-code-review`. Loops over a PR until nothing actionable remains: scans CI failures, bot findings, and human inline comments; triages each into auto-fix / needs-confirm / skip; fixes the clear ones; quick-checks locally; commits, replies `addressed in <sha>`, pushes, and waits on CI with `gh pr checks --watch` before re-scanning. Confirms the plan on the first round then runs autonomously, with stop guards for max rounds, no-progress, undiagnosable CI, and any new design-call finding. Runs on any PR branch you have push access to.
 - **[sentry-issue-resolver](./skills/engineering/sentry-issue-resolver/SKILL.md)** — Fetch a Sentry issue with full stack trace and event context, then walk the root cause and propose a fix.
 - **[signoff](./skills/engineering/signoff/SKILL.md)** — Wrap up the change in your working tree and open a PR: branch off main/master, commit only the files you touched (never others' staged/untracked work), push, open the PR following `.github/PULL_REQUEST_TEMPLATE.md`, and open it in the browser. Targets the `upstream` remote's default branch when one exists.
+- **[stack-pr](./skills/engineering/stack-pr/SKILL.md)** — Analyze committed changes on the current branch, propose a dependency-ordered stacked PR plan, then after explicit approval create upstream stacked PRs in review/merge order.
 
 ### HTML Artifacts
 
