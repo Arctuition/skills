@@ -96,19 +96,28 @@ Do not use PR mergeability, review decision, or check status as a proxy for whet
 remain. For example, a PR can be clean/ready to merge while still having unresolved
 `chatgpt-codex-connector` review threads. The thread's `isResolved` state is the source of truth.
 
-## Reply on a thread (loop's write-back)
+## Reply and resolve a thread (loop's write-back)
 
-Reply to the thread that a comment belongs to — `<comment_id>` is the thread's top-level comment
-`databaseId`:
+After the fix commit has been pushed, reply to the thread that a comment belongs to —
+`<comment_id>` is the thread's top-level comment `databaseId`. Then resolve the same thread with
+its GraphQL node `id`.
 
 ```bash
 gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments/<comment_id>/replies \
   -f body="addressed in $HEAD_SHA: <one line on what changed>"
 ```
 
-The loop **does not resolve threads** — that's left to the reviewer. For reference only, resolving
-is a GraphQL mutation `resolveReviewThread(input:{threadId:"<thread node id>"})`; the loop never
-calls it by default.
+```bash
+gh api graphql -f query='
+mutation($threadId:ID!) {
+  resolveReviewThread(input:{threadId:$threadId}) {
+    thread { id isResolved }
+  }
+}' -F threadId="<thread node id>"
+```
+
+Resolve only after the fix commit was pushed and the reply was posted. Resolve only bucket-①
+threads that were actually fixed in this round; never resolve needs-confirm or skipped threads.
 
 ## Commit & push (per round)
 
