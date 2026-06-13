@@ -29,8 +29,8 @@ query, the reply API, CI-log fetch, and the per-round commit — lives in
 3. **First round only:** show the plan and wait for "go".
 4. Fix the auto-fix bucket.
 5. Quick-check locally before push.
-6. Commit (one per round) and reply `addressed in <sha>`.
-7. Push, then `gh pr checks --watch`.
+6. Commit and push one round.
+7. Reply `addressed in <sha>`, resolve the addressed threads, then `gh pr checks --watch`.
 8. Re-scan and repeat until a stop condition fires.
 
 ## 0) Preflight
@@ -112,19 +112,25 @@ If a command can't be discovered, say so and skip it — don't invent one. Only 
 when the checks you *could* run pass. If a local check fails, fix it before pushing (it counts as
 the same round, not a new finding).
 
-## 6) Commit and reply
+## 6) Commit and push, then reply and resolve
 
 **One commit per round.** Stage only the files you changed this round, by path — never `git add -A`,
 `.`, or `-a`; on a shared branch, sweeping up someone else's work is the worst failure mode. Message summarizes
-the findings addressed; include the co-author trailer. Then capture the new sha and reply on each
-addressed thread with `addressed in <sha>: <one line>` — **do not resolve** the thread.
+the findings addressed; include the co-author trailer. Push the commit before changing GitHub thread
+state. Then capture the pushed sha, reply on each addressed thread with
+`addressed in <sha>: <one line>`, and resolve that same thread.
+
+Only resolve threads from bucket ① that this round actually fixed and replied to. Do not resolve
+needs-confirm threads, skipped threads, threads with failed fixes, or threads where the code change
+was not pushed successfully.
 Commands: [gh-loop.md](references/gh-loop.md#commit--push-per-round) and
 [reply](references/gh-loop.md#reply-on-a-thread-loops-write-back).
 
-## 7) Push and wait for CI
+## 7) Reply, resolve, and wait for CI
 
 ```bash
 git push                                    # plain push; never force-push a shared branch
+# reply to and resolve addressed threads here
 gh pr checks <pr> --watch --interval 30     # blocks until all checks finish
 ```
 
