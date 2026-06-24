@@ -24,7 +24,7 @@ query, the reply API, CI-log fetch, and the per-round commit — lives in
 ## Workflow overview
 
 0. Preflight — repo context, head SHA, **push permission**, checkout.
-1. Scan three finding sources — CI, bot findings, human inline comments.
+1. Scan finding sources — CI, bot findings (inline + top-level), human inline comments.
 2. Triage into three buckets — auto-fix / needs-confirm / skip.
 3. **First round only:** show the plan and wait for "go".
 4. Fix the auto-fix bucket.
@@ -49,20 +49,31 @@ reviewer stepping in to fix — both are fine, replies just post under `$ME`.
 
 ## 1) Scan finding sources
 
-Refresh `HEAD_SHA` each pass (others may have pushed). Scan exactly these three; **ignore**
-top-level review bodies and issue comments (too discussion-heavy to act on safely):
+Refresh `HEAD_SHA` each pass (others may have pushed). Scan these four sources. Ignore only
+**human** top-level review bodies and issue comments (too discussion-heavy to act on safely) — do
+**not** ignore top-level comments from bot-like reviewers, since tools like `claude` post their
+findings as one global PR comment rather than attaching them to a line:
 
 1. **CI failures** — `gh pr checks <pr> --json name,state,bucket,link`. Any `bucket: fail`.
-2. **Bot findings** — unresolved inline comments from bot or bot-like reviewer accounts, including
-   `*[bot]` logins plus connector accounts such as `chatgpt-codex-connector`, `claude`,
-   `coderabbitai`, and `copilot`. Do not require a `[bot]` suffix. Their finding bodies usually
-   carry a `P0`–`P3` badge.
-3. **Human inline comments** — open review threads from the GraphQL query.
+2. **Bot findings (inline)** — unresolved inline review threads from bot or bot-like reviewer
+   accounts, including `*[bot]` logins plus connector accounts such as `chatgpt-codex-connector`,
+   `claude`, `coderabbitai`, and `copilot`. Do not require a `[bot]` suffix. Their finding bodies
+   usually carry a `P0`–`P3` badge.
+3. **Bot findings (top-level)** — global PR comments from those same bot-like accounts: review
+   bodies and issue comments that summarize findings instead of pinning them to a line (`claude` in
+   particular posts a single global comment). Parse each finding out of the body — there may be
+   several per comment — and triage them exactly like inline bot findings. If a body carries no
+   actionable finding (a bare summary, "LGTM", or "see inline comments"), there is nothing to fix;
+   just mark it handled so it does not re-surface next round.
+4. **Human inline comments** — open review threads from the GraphQL query.
 
-Use the GraphQL `reviewThreads` query (not REST) so you get `isResolved` and the full reply chain.
-Per the dedup rule (below), drop threads that are resolved or already carry our `addressed in <sha>`
-reply at/under HEAD. Do not drop unresolved bot-like findings because the PR is mergeable, CI is
-green, review decision is empty, or a bot check was skipped. Commands:
+Use the GraphQL `reviewThreads` query (not REST) for inline sources so you get `isResolved` and the
+full reply chain; fetch top-level bot comments with the reviews + issue-comments query in
+[gh-loop.md](references/gh-loop.md#top-level-bot-comments-reviews--issue-comments). Per the dedup
+rule (below), drop inline threads that are resolved or already carry our `addressed in <sha>` reply
+at/under HEAD, and drop top-level bot comments already marked handled (see dedup). Do not drop
+unresolved bot-like findings because the PR is mergeable, CI is green, review decision is empty, or a
+bot check was skipped. Commands:
 [gh-loop.md](references/gh-loop.md#inline-review-comments--thread-resolution-state-graphql).
 
 ## 2) Triage into three buckets
@@ -123,8 +134,16 @@ state. Then capture the pushed sha, reply on each addressed thread with
 Only resolve threads from bucket ① that this round actually fixed and replied to. Do not resolve
 needs-confirm threads, skipped threads, threads with failed fixes, or threads where the code change
 was not pushed successfully.
-Commands: [gh-loop.md](references/gh-loop.md#commit--push-per-round) and
-[reply](references/gh-loop.md#reply-on-a-thread-loops-write-back).
+
+A **top-level bot comment** has no thread to resolve. After the fix is pushed, mark it handled with
+its dedup marker — a `$ME` reaction on the comment (`addReaction`), optionally plus one
+`addressed in <sha>` PR comment for traceability — but only once **every** actionable finding parsed
+from it is fixed-and-pushed or explicitly skipped with a reason. If any finding from it is
+needs-confirm, leave it unmarked and surface it.
+
+Commands: [gh-loop.md](references/gh-loop.md#commit--push-per-round),
+[reply](references/gh-loop.md#reply-on-a-thread-loops-write-back), and
+[top-level bot comments](references/gh-loop.md#top-level-bot-comments-reviews--issue-comments).
 
 ## 7) Reply, resolve, and wait for CI
 
@@ -156,6 +175,8 @@ survives interruption and re-invocation:
 
 - A **thread** is handled if `isResolved`, or its last comment is `$ME`'s `addressed in <sha>` with
   `<sha>` an ancestor of HEAD and no later reply reopening it.
+- A **top-level bot comment** is handled if it carries `$ME`'s reaction marker. If the bot edits the
+  comment after that (`lastEditedAt` later than the reaction), treat it as new and re-triage.
 - A **CI check** is a finding only while it's `bucket: fail` at the current HEAD.
 - A finding seen-but-unfixed across rounds trips the no-progress guard rather than looping forever.
 

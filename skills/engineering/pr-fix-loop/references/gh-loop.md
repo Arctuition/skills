@@ -96,6 +96,58 @@ Do not use PR mergeability, review decision, or check status as a proxy for whet
 remain. For example, a PR can be clean/ready to merge while still having unresolved
 `chatgpt-codex-connector` review threads. The thread's `isResolved` state is the source of truth.
 
+## Top-level bot comments (reviews + issue comments)
+
+Some bots — `claude` especially — post findings as **one global comment**, not inline. These never
+appear in `reviewThreads`, so the inline scan misses them entirely. Fetch them from two places: PR
+**review bodies** and PR **issue comments**. Both implement `Reactable`, so a `$ME` reaction is a
+durable "handled" marker (no thread to resolve), and both expose `lastEditedAt` to detect re-edits.
+
+```bash
+gh api graphql -F owner="$OWNER" -F repo="$REPO" -F pr=<pr> -f query='
+query($owner:String!, $repo:String!, $pr:Int!) {
+  repository(owner:$owner, name:$repo) {
+    pullRequest(number:$pr) {
+      reviews(first:100) {
+        nodes {
+          id author { login } body state submittedAt lastEditedAt
+          reactions(first:100, content: THUMBS_UP) { nodes { user { login } createdAt } }
+        }
+      }
+      comments(first:100) {
+        nodes {
+          id databaseId author { login } body createdAt lastEditedAt
+          reactions(first:100, content: THUMBS_UP) { nodes { user { login } createdAt } }
+        }
+      }
+    }
+  }
+}'
+```
+
+Keep only nodes whose `author.login` is a bot-like account (same list as inline bot findings) and
+whose body has non-empty content. A node is **handled** if its `reactions` includes one by `$ME` —
+unless `lastEditedAt` is later than that reaction's `createdAt`, in which case re-triage it. Parse
+each actionable finding out of the body (often several, with `P0`–`P3` badges).
+
+### Mark a top-level bot comment handled
+
+After the fix is pushed and every actionable finding from the comment is fixed-or-skipped, add the
+reaction marker on its node `id` (works for both review bodies and issue comments):
+
+```bash
+gh api graphql -f query='
+mutation($subjectId:ID!) {
+  addReaction(input:{subjectId:$subjectId, content: THUMBS_UP}) { reaction { content } }
+}' -F subjectId="<review or comment node id>"
+```
+
+Optionally cite the sha once for traceability (issue comments have no inline thread to reply on):
+
+```bash
+gh pr comment <pr> --body "addressed in $HEAD_SHA: <one line per finding from the bot's comment>"
+```
+
 ## Reply and resolve a thread (loop's write-back)
 
 After the fix commit has been pushed, reply to the thread that a comment belongs to —
