@@ -178,8 +178,7 @@ branch, sweeping up someone else's uncommitted work is the worst failure mode.
 
 ```bash
 git add <only the files this round touched>
-git commit -m "<summary of findings addressed this round>" \
-  -m "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+git commit -m "<summary of findings addressed this round>"
 git push        # plain push to the PR branch; never force-push a shared branch
 HEAD_SHA=$(git rev-parse HEAD)   # the sha to cite in replies this round
 ```
