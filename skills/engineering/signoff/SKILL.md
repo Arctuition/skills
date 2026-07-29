@@ -57,10 +57,10 @@ Re-run `git status --short` and confirm the "Changes to be committed" list conta
 
 ### 5) Commit
 
-Write a clear, imperative summary that matches the repo's existing log style. End the message with the co-author trailer:
+Write a clear, imperative summary that matches the repo's existing log style.
 
 ```bash
-git commit -m "<concise summary of the change>" -m "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+git commit -m "<concise summary of the change>"
 ```
 
 ### 6) Push

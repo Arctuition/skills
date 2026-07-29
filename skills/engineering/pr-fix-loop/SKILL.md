@@ -126,9 +126,9 @@ the same round, not a new finding).
 ## 6) Commit and push, then reply and resolve
 
 **One commit per round.** Stage only the files you changed this round, by path — never `git add -A`,
-`.`, or `-a`; on a shared branch, sweeping up someone else's work is the worst failure mode. Message summarizes
-the findings addressed; include the co-author trailer. Push the commit before changing GitHub thread
-state. Then capture the pushed sha, reply on each addressed thread with
+`.`, or `-a`; on a shared branch, sweeping up someone else's work is the worst failure mode. The
+message summarizes the findings addressed. Push the commit before changing GitHub thread state.
+Then capture the pushed sha, reply on each addressed thread with
 `addressed in <sha>: <one line>`, and resolve that same thread.
 
 Only resolve threads from bucket ① that this round actually fixed and replied to. Do not resolve

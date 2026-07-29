@@ -170,7 +170,6 @@ Commit construction:
 - Prefer one commit per PR when the PR scope is narrow and cohesive.
 - Use multiple commits in one PR only when they represent distinct reviewable steps.
 - Preserve original authorship when cherry-picking whole commits.
-- Add the repo's standard co-author trailer only to reconstructed commits created by the agent, when applicable.
 
 Allowed edits during execution:
 
