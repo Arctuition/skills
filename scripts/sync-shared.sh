@@ -8,9 +8,11 @@
 #
 # Two kinds of sync:
 #
-# 1. File-level (design-tokens.md):
+# 1. File-level (base tokens and component references):
 #    Source: skills/html-artifacts/_shared/design-tokens.md
 #    Target: skills/html-artifacts/<skill>/references/design-tokens.md
+#    Source: skills/html-artifacts/_shared/components/*.md
+#    Target: skills/html-artifacts/<skill>/references/components/*.md
 #
 # 2. Block-level (everything else in _shared/*.md):
 #    Source: skills/html-artifacts/_shared/<name>.md
@@ -41,7 +43,7 @@ fi
 drift=0
 synced=0
 
-# ---- 1. File-level: design-tokens.md ----------------------------------------
+# ---- 1. File-level: base tokens and component references -------------------
 
 SOURCE="$SHARED_DIR/design-tokens.md"
 if [ ! -f "$SOURCE" ]; then
@@ -49,31 +51,39 @@ if [ ! -f "$SOURCE" ]; then
   exit 1
 fi
 
-for skill_dir in "$SKILLS_DIR"/*/; do
-  skill_name="$(basename "$skill_dir")"
-  [ "$skill_name" = "_shared" ] && continue
+for SOURCE in "$SHARED_DIR/design-tokens.md" "$SHARED_DIR"/components/*.md; do
+  [ -f "$SOURCE" ] || continue
+  for skill_dir in "$SKILLS_DIR"/*/; do
+    skill_name="$(basename "$skill_dir")"
+    [ "$skill_name" = "_shared" ] && continue
+    [ -f "${skill_dir}SKILL.md" ] || continue
 
-  target="${skill_dir}references/design-tokens.md"
+    reference_name="$(basename "$SOURCE")"
+    if [ "$(dirname "$SOURCE")" = "$SHARED_DIR/components" ]; then
+      reference_name="components/$reference_name"
+    fi
+    target="${skill_dir}references/$reference_name"
 
-  if [ ! -d "${skill_dir}references" ]; then
+    if [ ! -d "$(dirname "$target")" ]; then
+      if [ "$mode" = "check" ]; then
+        echo "missing: $target (reference folder doesn't exist)" >&2
+        drift=1
+        continue
+      fi
+      mkdir -p "$(dirname "$target")"
+    fi
+
     if [ "$mode" = "check" ]; then
-      echo "missing: $target (references/ folder doesn't exist)" >&2
-      drift=1
-      continue
+      if [ ! -f "$target" ] || ! cmp -s "$SOURCE" "$target"; then
+        echo "drift: $target differs from $SOURCE" >&2
+        drift=1
+      fi
+    else
+      cp "$SOURCE" "$target"
+      synced=$((synced + 1))
+      echo "synced  $target"
     fi
-    mkdir -p "${skill_dir}references"
-  fi
-
-  if [ "$mode" = "check" ]; then
-    if [ ! -f "$target" ] || ! cmp -s "$SOURCE" "$target"; then
-      echo "drift: $target differs from _shared/design-tokens.md" >&2
-      drift=1
-    fi
-  else
-    cp "$SOURCE" "$target"
-    synced=$((synced + 1))
-    echo "synced  $target"
-  fi
+  done
 done
 
 # ---- 2. Block-level: every other _shared/*.md -------------------------------
@@ -92,11 +102,11 @@ for block_file in "$SHARED_DIR"/*.md; do
     # Skip silently if this SKILL.md doesn't opt in to this block.
     start_marker="<!-- shared:${block_name}-start -->"
     end_marker="<!-- shared:${block_name}-end -->"
-    if ! grep -qF "$start_marker" "$target"; then
+    if ! grep -qF "$start_marker" "$target" && ! grep -qF "$end_marker" "$target"; then
       continue
     fi
-    if ! grep -qF "$end_marker" "$target"; then
-      echo "error: $target has $start_marker but no $end_marker" >&2
+    if ! grep -qF "$start_marker" "$target" || ! grep -qF "$end_marker" "$target"; then
+      echo "error: $target has an unmatched marker for $block_name" >&2
       drift=1
       continue
     fi
@@ -132,12 +142,12 @@ for block_file in "$SHARED_DIR"/*.md; do
   done
 done
 
+if [ "$drift" -ne 0 ]; then
+  echo "shared content is incomplete or invalid; inspect the errors above before syncing." >&2
+  exit 1
+fi
+
 if [ "$mode" = "check" ]; then
-  if [ "$drift" -ne 0 ]; then
-    echo "" >&2
-    echo "Run 'bash scripts/sync-shared.sh' to fix." >&2
-    exit 1
-  fi
   echo "all shared content in sync"
 else
   echo ""

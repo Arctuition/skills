@@ -1,104 +1,60 @@
 ---
 name: signoff
-description: Wrap up the work you just did and open a PR for it — branch off main/master if needed, commit only the changes you made, push, open a pull request (following .github/PULL_REQUEST_TEMPLATE.md when present), and open the PR in the browser. Targets the `upstream` remote's default branch as the base when an `upstream` remote exists, otherwise `origin`. Use when the user says "sign off", "signoff", "ship it", "open a PR for this", "commit and PR", or "wrap this up".
+description: Commit the work just completed, push it, create or update its GitHub PR, and open the PR in the default browser. Use for "signoff", "ship it", "commit and PR", or "open a PR for this".
 ---
 
-# Sign Off
+# Signoff
 
-Take the change that's already in the working tree and get it onto a PR: branch → commit → push → PR → open in browser. The goal is a clean, reviewable pull request with zero collateral — nothing committed that you didn't write this session.
+Deliver the task's change as a reviewable PR. The request authorizes committing, pushing, and opening the PR; use existing session context to identify its scope.
 
-## Golden rule — commit only your own work
-
-**Never `git add -A`, `git add .`, or `git commit -a`.** Stage every file explicitly by path. Files that were already staged or sitting untracked before you started are **not yours to commit** — leave them alone. If you can't tell whether a change is yours, ask before staging it. This rule overrides convenience every time.
-
-## Workflow
-
-### 1) Find the base repo and branch
-
-```bash
-git remote -v
-```
-
-- If an **`upstream`** remote exists, the PR targets it (fork workflow): base repo = `upstream`, base branch = its default branch. Find it with:
-  ```bash
-  gh repo view <upstream-owner/repo> --json defaultBranchRef --jq .defaultBranchRef.name
-  ```
-- If there is no `upstream`, the PR targets `origin` and its default branch.
-
-### 2) Branch if needed
-
-```bash
-git branch --show-current
-```
-
-If you're on `main`, `master`, or the base branch, create a new branch with a short kebab-case name describing the change (`add-signoff-skill`, `fix-retry-backoff`). If you're already on a feature branch, reuse it.
-
-```bash
-git switch -c <descriptive-branch-name>
-```
-
-### 3) See exactly what changed and whose it is
+## Resolve scope and base
 
 ```bash
 git status --short
-git diff            # unstaged
-git diff --staged   # already staged — scrutinize: did YOU stage this?
+git diff
+git diff --cached
+git remote -v
+git branch --show-current
+gh auth status
 ```
 
-Sort every entry into **yours** (created/edited this session) vs **pre-existing** (staged or untracked before you started). Only the first group is in scope. When in doubt, ask the user rather than guess.
-
-### 4) Stage only your files, explicitly
+The base repository is `upstream` when present, otherwise `origin`. Resolve and fetch its current default branch, unless the user specified another base:
 
 ```bash
-git add path/to/file-you-changed another/file.md
+gh repo view "<BASE_OWNER/REPO>" --json defaultBranchRef --jq .defaultBranchRef.name
+git fetch "<BASE_REMOTE>"
 ```
 
-Re-run `git status --short` and confirm the "Changes to be committed" list contains your files and nothing else.
+Check the complete branch diff against that base, including prior commits. Reuse a feature branch only when its changes belong to this task. From a default branch, detached HEAD, or unrelated branch, create an appropriately named task branch; use an isolated worktree if needed to preserve unrelated work.
 
-### 5) Commit
+Bring the task branch onto the current base with a method appropriate to its published history. Resolve mechanical conflicts within scope; do not rewrite shared history or alter unrelated edits. Run the repository's required checks and validation appropriate to the change.
 
-Write a clear, imperative summary that matches the repo's existing log style.
+## Commit only task-owned changes
+
+Explicit paths alone do not isolate the index: plain `git commit` also includes previously staged files. Do not unstage someone else's work to make the index clean.
+
+When each selected file is wholly task-owned, stage those paths and use a path-scoped commit:
 
 ```bash
-git commit -m "<concise summary of the change>"
+git add -- "<TASK_FILE_1>" "<TASK_FILE_2>"
+git diff --cached -- "<TASK_FILE_1>" "<TASK_FILE_2>"
+git -c commit.gpgsign=false commit --only -m "<SUMMARY>" -- "<TASK_FILE_1>" "<TASK_FILE_2>"
 ```
 
-### 6) Push
+`--only` uses the working-tree contents of those paths. If a selected file mixes task and unrelated hunks, isolate the task patch in a separate index or worktree instead; do not commit the whole file.
+
+Use one concise unsigned commit, without a body, Co-Authored-By trailer, or AI attribution unless requested. Inspect the resulting commit and remaining worktree/index before pushing.
+
+## Push and publish
+
+Push to `origin` in the fork workflow; the PR still targets the resolved base repository. Verify the push target rather than assuming the branch's existing tracking remote.
 
 ```bash
-git push -u origin <branch-name>
+git push -u origin "<TASK_BRANCH>"
+gh pr create --repo "<BASE_OWNER/REPO>" --base "<BASE_BRANCH>" \
+  --head "<HEAD_OWNER>:<TASK_BRANCH>" --title "<TITLE>" --body-file "<PR_BODY_FILE>"
 ```
 
-(Push to `origin` — your fork — even when the PR targets `upstream`.)
+Check for an existing PR before creating one; update that PR if it is the same task. Follow the repository's PR template when present. Describe the resulting behavior, relevant validation, and any material limitation. Default to ready for review unless the user requests draft.
 
-### 7) Open the PR
-
-Check for a template first — `.github/PULL_REQUEST_TEMPLATE.md` (also `.github/pull_request_template.md` or templates under `.github/PULL_REQUEST_TEMPLATE/`). If one exists, **fill every section out** with real content; don't leave the placeholder prompts in.
-
-Fork workflow (upstream exists):
-
-```bash
-gh pr create --repo <upstream-owner/repo> --base <default-branch> \
-  --head <origin-owner>:<branch-name> \
-  --title "<title>" --body "<body following the template if any>"
-```
-
-No upstream:
-
-```bash
-gh pr create --base <default-branch> --title "<title>" --body "<body>"
-```
-
-### 8) Open the PR in the browser
-
-```bash
-gh pr view --web        # current branch's PR
-# or, with the URL gh printed:
-open <pr-url>           # macOS
-```
-
-## Notes
-
-- Pre-flight: confirm `gh auth status` is logged in before step 7.
-- If the branch already has an open PR, `gh pr create` will say so — surface the existing URL and open it instead of erroring out.
-- If CI checks or a base-branch protection rule block the PR, report it; don't try to bypass it.
+Open the resulting URL in the operating system's default browser, using `open "<PR_URL>"` on macOS or the platform equivalent. Return the PR link and validation status; do not imply pending CI has passed.

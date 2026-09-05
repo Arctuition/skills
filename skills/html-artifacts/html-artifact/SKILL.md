@@ -1,28 +1,26 @@
 ---
 name: html-artifact
-description: Produce a single self-contained HTML knowledge artifact for one-off deliverables — status reports, incident timelines, slide decks, concept explainers, design comparisons, dashboards, clickable prototypes, weekly digests, post-mortems. Trigger when the user asks for "an HTML for X", "a one-pager", "a status report", "an incident timeline", or describes a spatially-organized document (diff, diagram, side-by-side, time-axis, clickable flow) that would lose its value as flat markdown — even when they don't say "HTML" explicitly.
+description: Create a self-contained HTML report, explainer, comparison, or interactive handoff using the team's visual style. Use when the user requests HTML or a shareable visual document; ordinary chat answers, Markdown summaries, and application UI work do not require this skill.
 ---
 
-# HTML artifact
+# HTML Artifact
 
-Produce one self-contained HTML file using the shared design system.
+Create a portable visual document shaped by its audience and purpose. Use the specialized HTML skills for a PR review companion, PR writeup, module map, or conversation recap when that is the requested deliverable.
 
-## Use the design tokens
+Choose the smallest structure that explains the material. Use diagrams, comparisons, or interaction where they improve understanding; sections and component counts are not prescribed. Preserve the distinction between sourced facts, estimates, and proposals.
 
-Read `references/design-tokens.md` and use its colours, typography, page shell, and component CSS exactly. Don't introduce new colours, fonts, or shadows — the shared design system is what keeps team artifacts feeling like a coherent set, and drift here is the failure mode to avoid. If you genuinely need a component the tokens don't cover, build it inline from the existing colours / typography / borders so it still belongs to the family.
+## Build and verify
 
-The reference components (TL;DR block, ba-grid, principle list, callout-dark, panel, file index, etc.) are a vocabulary, not a checklist — pull in whatever the content needs and skip the rest.
+<!-- shared:html-workflow-start -->
+Read [design-tokens.md](references/design-tokens.md) for the base style, then only the component references needed for this artifact. Adapt structure to the material and the user's requested format or style. Match the user's prose language and preserve source identifiers.
 
-## Everything else is the user's call
+Assemble one self-contained HTML file. Render it in an available browser and inspect wide and narrow layouts, diagrams, and interactive controls. Fix overlap, overflow, or broken navigation before delivery; if rendering is unavailable, state the verification limit.
+<!-- shared:html-workflow-end -->
 
-Content, sections, ordering, length, what goes first, how many screens — that's for the user and the material to decide, not this skill. Don't impose a template or a required shape; build what the content in front of you needs.
+## Deliver
 
-Match the user's prose language: Chinese ask → Chinese prose, English ask → English prose. Code, file paths, identifiers, ticket keys, and CSS class names stay English.
+Choose a descriptive `<SUBJECT>.html` filename.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
 <!-- shared:save-conventions-end -->
-
-## Reference
-
-- `references/design-tokens.md` — the colour / typography / page-shell / component CSS to use verbatim. Read this before assembling the HTML.

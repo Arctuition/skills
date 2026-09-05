@@ -1,76 +1,62 @@
-# CLAUDE.md
+# Skill authoring
 
 Skills are organized into bucket folders under `skills/`:
 
-- `engineering/` — operates on code and tickets (review, debugging, project management)
-- `html-artifacts/` — produces a single self-contained HTML file for hand-off
+- `engineering/` — operates on code and tickets.
+- `html-artifacts/` — produces a single self-contained HTML file for handoff.
 
 Add a new bucket only when at least two skills genuinely share it.
 
-## Skill folder layout
+## Layout and discovery
 
-```
+```text
 skills/<bucket>/<skill-name>/
-├── SKILL.md           # required — YAML frontmatter + workflow
-└── references/        # optional — supporting docs the skill links into
+├── SKILL.md
+└── references/        # optional, linked from the workflow
 ```
 
-`<skill-name>` is kebab-case and matches the `name` in the frontmatter.
-
-## SKILL.md frontmatter
+Use a kebab-case folder name matching the frontmatter:
 
 ```yaml
 ---
 name: skill-name
-description: One or two sentences. Be specific about trigger phrases and use cases — this is what Claude reads to decide whether to invoke the skill.
+description: One or two sentences describing the capability and actual trigger phrases.
 ---
 ```
 
-The description is the trigger. Vague descriptions don't fire. List the verbs and phrases a user would actually say.
+Keep descriptions specific enough to select the right skill. Do not turn ordinary reviews, summaries, or explanations into a different deliverable through overly broad triggers.
+
+## Instructions worth keeping
+
+Assume the model can perform ordinary coding, writing, and tool use. Keep project defaults, non-obvious workflow constraints, evidence requirements, and concise command examples that prevent a concrete mistake.
+
+Delete duplicate tutorials and output scaffolding. Move substantial conditional details into linked references and explain when to read them. Preserve user intent and existing authorization; ask only for missing information or authority that materially affects the task.
 
 ## Conventions
 
-- Every skill in `engineering/` and `html-artifacts/` must have an entry in the top-level [README.md](./README.md), linked to its `SKILL.md`.
-- Use `<ANGLE_BRACKETS>` for user-supplied values and `$ENV_VARS` for env vars in command templates.
-- Check prerequisites (auth tokens, installed CLIs) before running anything destructive or networked.
+- Every skill must have a top-level [README.md](README.md) entry linked to its `SKILL.md`.
+- Use `<ANGLE_BRACKETS>` for user-supplied values and `$ENV_VARS` for environment variables in command templates.
+- Check prerequisites and authentication before networked or destructive operations without exposing credentials.
 - Prefer explicit, copy-pasteable commands over clever one-liners.
+- Keep each installed skill self-contained; repository-relative links to sibling skills are not a runtime dependency.
 
-## Shared content for html-artifacts
+## Shared HTML content
 
-The `html-artifacts/` skills share content from `skills/html-artifacts/_shared/`. `scripts/sync-shared.sh` propagates that content into each skill in two modes:
+Maintain the common visual vocabulary and delivery rules in `skills/html-artifacts/_shared/`, even when a component currently serves only one skill.
 
-```
-skills/html-artifacts/
-├── _shared/
-│   ├── design-tokens.md             # file-level: synced as a whole into each references/
-│   └── save-conventions.md          # block-level: spliced into each SKILL.md between markers
-├── html-module-map/
-│   ├── SKILL.md                     # contains <!-- shared:save-conventions-start/end --> markers
-│   └── references/design-tokens.md  # auto-synced copy — do not edit
-├── html-pr-review/...               # same
-├── html-pr-writeup/...              # same
-└── html-thread-recap/...            # same
+```text
+_shared/
+├── design-tokens.md       # base style and component routing
+├── components/*.md        # component groups read on demand
+├── html-workflow.md       # shared build/verification block
+└── save-conventions.md    # shared delivery block
 ```
 
-**Two sync modes:**
+`scripts/sync-shared.sh` propagates sources in two modes:
 
-1. **File-level (`_shared/design-tokens.md`)** → copied wholesale to each skill's `references/design-tokens.md`. Use for bulky reference material that the agent reads on demand.
-2. **Block-level (every other `_shared/*.md`)** → spliced into any `SKILL.md` that opts in by wrapping a region with `<!-- shared:<name>-start --> ... <!-- shared:<name>-end -->` markers. Content between the markers is replaced on every sync. Use for short, load-bearing rules (e.g. output conventions) that must stay in `SKILL.md` itself so the agent sees them on every skill trigger.
+1. **File-level:** `_shared/design-tokens.md` and `_shared/components/*.md` copy into each HTML skill's `references/`, preserving the `components/` subdirectory.
+2. **Block-level:** other `_shared/*.md` files replace regions between `<!-- shared:<name>-start -->` and `<!-- shared:<name>-end -->` in opted-in `SKILL.md` files. Skills without markers are untouched; unmatched markers are errors.
 
-**To change shared content:**
+Edit shared sources, run `bash scripts/sync-shared.sh`, and include both sources and generated copies in the change. Do not edit generated references or shared blocks directly. Run `bash scripts/sync-shared.sh --check` before handoff; it fails on drift.
 
-1. Edit the file in `skills/html-artifacts/_shared/`
-2. Run `bash scripts/sync-shared.sh`
-3. Commit both the source and the synced copies/blocks in the same change
-
-**Why not edit the copies directly?** `references/design-tokens.md` carries a do-not-edit header; SKILL.md regions between `<!-- shared:* -->` markers are silently overwritten on the next sync. If a component or rule is currently used by only one skill, it still belongs in `_shared/` — keeping the vocabulary unified means future skills can pick it up without rewriting the wheel.
-
-**To add a new shared block:**
-
-1. Drop `_shared/<name>.md` (just the body, no markers)
-2. In each SKILL.md that should opt in, wrap the region with `<!-- shared:<name>-start -->` and `<!-- shared:<name>-end -->`
-3. Run `bash scripts/sync-shared.sh`. Skills without the marker pair are untouched; an unmatched start marker errors out.
-
-**To verify everything is in sync** (e.g., before pushing): `bash scripts/sync-shared.sh --check`. Exits non-zero on drift.
-
-**No starter `template.html`.** Each skill's `SKILL.md` describes the section structure and component choices; `references/design-tokens.md` carries the canonical CSS and component markup. The LLM assembles the final HTML directly from those two — there's no per-skill scaffold file to drift against.
+No starter `template.html`: the skill describes the document's purpose and useful structure, while base tokens and selected component references supply the CSS/markup vocabulary.

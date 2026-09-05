@@ -1,100 +1,40 @@
 ---
 name: html-pr-review
-description: Produce a single-file HTML "code review companion" artifact that helps a reviewer get oriented in someone else's pull request — a risk-coloured map of every file, an annotated diff with margin notes and severity tags, the call-graph that shows how the changed pieces fit together, and the questions worth asking the author. Use this skill whenever the user is about to review a PR, has been assigned one, mentions reviewing code they didn't write, says things like "help me review this", "I need to review PR #N", "what should I look at first", "I'm getting up to speed on this change", "I don't know this codebase well", or asks for a review checklist. Trigger even when the user doesn't say "HTML" — the artifact format is the whole point and the user should not have to ask for it by name. This skill is for the reviewer; if the user is the author writing their own PR description, use html-pr-writeup instead.
+description: Create a self-contained HTML companion for reviewing a GitHub PR, with a risk map and annotated changes. Use when a reviewer requests an HTML or visual review handoff; a plain "review PR" request does not require an HTML artifact.
 ---
 
-# PR review companion → HTML artifact
+# HTML PR Review Companion
 
-You are helping a reviewer who has been handed someone else's PR. They likely don't have full context. They want to know, in this order: where the risk is concentrated, what to read first, what to skip, and what to ask the author.
+Orient a reviewer to what changed, where the risks are, and which questions remain. This artifact does not post a GitHub review.
 
-The artifact is *for the reviewer*, not the author. It's the document the reviewer wishes the author had written.
+## Ground the review
 
-## Inputs you should gather
+Read the actual PR diff at a captured head SHA, its description, affected callers, tests, and current CI. For local branches, use the merge-base diff so base advancement is not mistaken for PR changes.
 
-1. **The diff** — get the actual hunks via `git diff <base>..<head>`, the GitHub URL via MCP if available, or the user's paste. Don't summarize from filenames alone.
-2. **The base branch / head branch / repo name.**
-3. **Surrounding context** — the called-from / calls-into edges of the changed code. For a function that's been modified, find its callers (`grep`/`rg`). This is what makes the review *good*.
-4. **What the author claimed** — read the PR description if it exists. Cross-check it against the diff.
-5. **Tests** — what's covered, what isn't.
+Tie concerns to supported scenarios and source locations. Distinguish defects from unanswered questions, and do not manufacture a quota of findings. Assess risk from behavior: type-only changes, migrations, dependency bumps, and generated files can affect existing contracts.
 
-If something is missing and findable from the repo, find it. If still missing, ask one focused question.
+## Compose
 
-## Structure of the artifact
+Default to a brief explanation, a file risk map, the consequential hunks with annotations, and relevant questions/validation limits. Group mechanical files where that improves reading; add a call graph only when it explains an important relationship.
 
-Use this shape unless asked otherwise. Drop sections that would be empty.
+Risk colors retain their shared meanings: olive = safe, oat = worth a look, clay = needs attention. Explain the reason for each material risk and never use color as the sole signal.
 
-1. **Header** — eyebrow (`<repo> · Pull Request #N`), `h1` with the PR title, author + age + branch + diff stats.
-2. **What this PR does** — your reading of the change in three to five bullets, *not the author's words*. Reviewers want the independent restatement.
-3. **Risk map** — every changed file as a clickable chip, coloured by your assessment: `safe` / `worth a look` / `needs attention`. The chips link to the corresponding file section. Add a legend.
-4. **Files** — each file as a card with: path, +/-, risk tag, your reading of what changed, the relevant diff hunks, and inline review notes. For risky files, render the actual diff with margin notes (see "Annotated diff" below). For safe files, one sentence is enough.
-5. **Questions for the author** — the things the diff alone doesn't answer. Numbered, specific, citing file:line.
-6. **Test coverage** — what tests exist for the changed code, what's gapped, whether the gaps matter.
-7. **Optional: Call-graph / module map** — if the change touches an unfamiliar area, an inline SVG of the affected modules helps a lot. See `references/design-tokens.md` for the box-and-arrow pattern.
+Use [reviews.md](references/components/reviews.md) for diff rows and blocking/question/nit bubbles. Keep line numbers accurate for old and new code. Include actual code where it helps assess a finding; do not reproduce the full PR by default.
 
-## How to assign risk
+State the reviewed SHA and which checks were actually run or observed, distinct from suggested test coverage.
 
-Be honest, not flattering. The reviewer trusts the map only if it's calibrated.
+## Build and verify
 
-- **safe** — type-only, rename, test, docs, dependency bump where the changelog is clean, mechanical refactor, additive code with no feature flag exposure.
-- **worth a look** — new behaviour in a familiar pattern, refactors that change call-sites, additions to a critical-but-stable file.
-- **needs attention** — new code on a hot path, concurrency / state changes, retry / idempotency, schema migrations, anything that touches auth / billing / pii, anything with a `// TODO` or `// FIXME` that the author left behind.
+<!-- shared:html-workflow-start -->
+Read [design-tokens.md](references/design-tokens.md) for the base style, then only the component references needed for this artifact. Adapt structure to the material and the user's requested format or style. Match the user's prose language and preserve source identifiers.
 
-When you flag `needs attention`, the file's review note must say *what specifically* to look at. "This is risky" without a pointer is useless.
+Assemble one self-contained HTML file. Render it in an available browser and inspect wide and narrow layouts, diagrams, and interactive controls. Fix overlap, overflow, or broken navigation before delivery; if rendering is unavailable, state the verification limit.
+<!-- shared:html-workflow-end -->
 
-## Annotated diff format
+## Deliver
 
-For files with `worth a look` or `needs attention`, render the relevant hunks inline rather than just describing them. Use this pattern:
-
-```html
-<div class="diff">
-  <div class="diff-row context"><span class="ln">42</span><span class="mark"> </span><pre>function pickWorker() {</pre></div>
-  <div class="diff-row del">    <span class="ln">43</span><span class="mark">-</span><pre>  return workers[Math.floor(Math.random() * workers.length)];</pre></div>
-  <div class="diff-row add">    <span class="ln">44</span><span class="mark">+</span><pre>  return workers[counter++ % workers.length];</pre></div>
-  <div class="bubble blocking">
-    <span class="label">BLOCKING</span>
-    <p><code>counter</code> is module-local but workers run in multiple processes — round-robin per-process is not round-robin overall.</p>
-  </div>
-</div>
-```
-
-Bubble severities (use the colour rule from design-tokens):
-- `blocking` (clay) — must change before merge
-- `question` (slate) — needs an answer, may not need a change
-- `nit` (gray) — preference, not a blocker
-
-## Questions section
-
-This is the most valuable part of the artifact. Aim for three to seven questions, each citing `path:line`, each genuinely answerable. Examples that work:
-
-- "`workerPool.ts:42` — the round-robin uses a module-local counter; intended? With multiple Node processes this is approximate."
-- "`migration_004.sql:11` — backfill is a single `UPDATE`; on a 50M-row table this needs a chunked job. Is that follow-up work or did I miss it?"
-
-Questions that don't work: "is this tested?" (you can read the test file), "did you consider X?" (vague). Cite a line.
-
-## Visual style
-
-Use the tokens and components in `references/design-tokens.md`. Risk colours are non-negotiable: olive = safe, oat = worth a look, clay = needs attention. The reviewer learns the legend once and it must mean the same thing across every artifact you produce.
-
-## Output
-
-Default filename: `pr-<number>-review.html`.
+Default filename: `pr-<NUMBER>-review.html`.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/`, creating the directory if it doesn't exist. If the user specified a directory or filename, honor that instead. Surface a `computer://` link so the user can open it themselves — don't auto-open. Don't dump the HTML source into chat — the artifact is the deliverable.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
 <!-- shared:save-conventions-end -->
-
-After saving, ask whether they want you to (a) draft the GitHub review comments based on this, (b) deepen any section, or (c) move on.
-
-## Output language
-
-Match the user's language for prose. Filenames, code, branch names, bubble labels (`BLOCKING` / `QUESTION` / `NIT`), and risk tags can stay in English even if the prose is Chinese — they read as terms of art.
-
-## When *not* to use this skill
-
-- The user is the *author* writing their own PR description — use `html-pr-writeup` instead.
-- The user just wants a one-line approve/reject — answer in chat, no artifact.
-- The PR is a one-liner (typo, version bump). Eyeball it, comment in chat.
-
-## Reference
-
-- `references/design-tokens.md` — full CSS/component vocabulary (risk chips, bubbles, diff rows, SVG flow diagrams). Read it before assembling the HTML — it has the full CSS and component markup you need to drop into the document's `<style>` and body.

@@ -1,47 +1,40 @@
 # ArcSite Skills
 
-Custom skills for [Claude Code](https://github.com/anthropics/claude-code) used day-to-day at ArcSite.
+Skills for day-to-day engineering work and self-contained HTML handoffs at ArcSite. Each skill lives under `skills/<bucket>/<name>/` with a discoverable `SKILL.md`.
 
-These skills are designed to be small and composable. Each one lives in its own folder under `skills/`, with a `SKILL.md` that defines when it triggers and how it runs.
+## Use
 
-## Quickstart
+Install the skill folders in your agent's skills directory, or use `bash scripts/copy-skills.sh` to copy them into `~/.agents/skills`. The copy script merges files; it does not remove files retired from this repository.
 
-1. Clone this repo into your Claude Code skills directory (or symlink it).
-2. Make sure the prerequisites for the skills you want are set up:
-   - **sentry-issue-resolver** — `SENTRY_AUTH_TOKEN` env var
-   - **jira-ticket-manager** — [`jira-cli`](https://github.com/ankitpokhrel/jira-cli) installed and `jira init` run
-   - **pr-code-review** — [`gh`](https://cli.github.com/) installed and authenticated
-3. Reference a skill by name in conversation, or invoke it directly with `/skill-name`.
+Prerequisites depend on the workflow: authenticated `gh` for GitHub, configured `jira-cli` for Jira, and a Sentry connector or `SENTRY_AUTH_TOKEN` for Sentry. Skills check the relevant access before network operations.
 
-## Reference
+## Engineering
 
-### Engineering
+- [jira-ticket-manager](skills/engineering/jira-ticket-manager/SKILL.md) — Create, search, view, and update tickets with ArcSite component and Backlog defaults.
+- [last30days](skills/engineering/last30days/SKILL.md) — Synthesize recent community discussion with dated sources and explicit coverage limits.
+- [pr-code-review](skills/engineering/pr-code-review/SKILL.md) — Review a PR for actionable defects; present findings locally and publish when authorized.
+- [pr-fix-loop](skills/engineering/pr-fix-loop/SKILL.md) — Fix CI and review findings, push, and re-scan the current head. Reply and resolve when authorized.
+- [sentry-issue-resolver](skills/engineering/sentry-issue-resolver/SKILL.md) — Diagnose from event evidence and source; implement fixes when requested.
+- [signoff](skills/engineering/signoff/SKILL.md) — Commit task-owned changes, push, create/update the PR, and open it in the default browser.
+- [stack-pr](skills/engineering/stack-pr/SKILL.md) — Plan and construct dependency-ordered PRs from committed changes, preserving the source branch.
 
-Skills that operate on code and tickets.
+## HTML artifacts
 
-- **[jira-ticket-manager](./skills/engineering/jira-ticket-manager/SKILL.md)** — Create, search, view, and edit Jira tickets non-interactively via `jira-cli`. Auto-selects the right component (API / Projects / Proposals / Backends / Regression / AI).
-- **[last30days](./skills/engineering/last30days/SKILL.md)** — Research what real people have been saying about a topic over a recent window (default last 30 days) across Reddit, Hacker News, X, YouTube, and GitHub, then synthesize an engagement-weighted, cited brief. Zero-dependency take on [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill) using built-in `WebSearch`/`WebFetch`. Focuses on recency + community signal (trend discovery, tool selection, sentiment) — complements fact-checking research.
-- **[pr-code-review](./skills/engineering/pr-code-review/SKILL.md)** — Review GitHub PRs via `gh`. Posts inline comments on specific lines and submits a single batched review with a P0–P3 priority summary and a verdict. Supports an **interactive mode** ("interactive review", "手动挡", "discuss before posting") that drafts everything locally and waits for explicit approval before posting — and keeps the session open afterwards to collaborate on follow-up comments as the human reviewer surfaces more issues.
-- **[pr-fix-loop](./skills/engineering/pr-fix-loop/SKILL.md)** — The author-side counterpart to `pr-code-review`. Loops over a PR until nothing actionable remains: scans CI failures, bot findings, and human inline comments; triages each into auto-fix / needs-confirm / skip; fixes the clear ones; quick-checks locally; commits, pushes, replies `addressed in <sha>`, resolves addressed threads, and waits on CI with `gh pr checks --watch` before re-scanning. Confirms the plan on the first round then runs autonomously, with stop guards for max rounds, no-progress, undiagnosable CI, and any new design-call finding. Runs on any PR branch you have push access to, including PRs that already look ready to merge.
-- **[sentry-issue-resolver](./skills/engineering/sentry-issue-resolver/SKILL.md)** — Fetch a Sentry issue with full stack trace and event context, then walk the root cause and propose a fix.
-- **[signoff](./skills/engineering/signoff/SKILL.md)** — Wrap up the change in your working tree and open a PR: branch off main/master, commit only the files you touched (never others' staged/untracked work), push, open the PR following `.github/PULL_REQUEST_TEMPLATE.md`, and open it in the browser. Targets the `upstream` remote's default branch when one exists.
-- **[stack-pr](./skills/engineering/stack-pr/SKILL.md)** — Analyze committed changes on the current branch, propose a dependency-ordered stacked PR plan, then after explicit approval create upstream stacked PRs in review/merge order.
+Use these for an HTML or visual document handoff. Ordinary reviews, explanations, summaries, and GitHub PR descriptions can stay in chat or Markdown.
 
-### HTML Artifacts
+- [html-module-map](skills/html-artifacts/html-module-map/SKILL.md) — Module/workflow diagrams, execution walkthrough, and key source locations.
+- [html-pr-review](skills/html-artifacts/html-pr-review/SKILL.md) — Reviewer companion with risk mapping and annotated changes.
+- [html-pr-writeup](skills/html-artifacts/html-pr-writeup/SKILL.md) — Author's explanation of behavior, motivation, risk, and validation.
+- [html-thread-recap](skills/html-artifacts/html-thread-recap/SKILL.md) — Conversation handoff with decisions, reasoning, abandoned approaches, and remaining work.
+- [html-artifact](skills/html-artifacts/html-artifact/SKILL.md) — Other self-contained visual reports, comparisons, and explainers.
 
-Skills that produce a single self-contained HTML file you can hand to a teammate. They share a visual vocabulary in [`_shared/design-tokens.md`](./skills/html-artifacts/_shared/design-tokens.md), propagated into each skill via [`scripts/sync-shared.sh`](./scripts/sync-shared.sh).
+The shared [base tokens](skills/html-artifacts/_shared/design-tokens.md) link to component references loaded as needed. Edit sources under `_shared/`, then synchronize the standalone skill copies:
 
-Specialized skills (use these when they fit):
+```bash
+bash scripts/sync-shared.sh
+bash scripts/sync-shared.sh --check
+```
 
-- **[html-module-map](./skills/html-artifacts/html-module-map/SKILL.md)** — Break down a module, feature, or workflow into an inline-SVG architecture diagram with the hot path highlighted, a key-files panel, a numbered callstack walkthrough, gotchas, and a glossary.
-- **[html-pr-review](./skills/html-artifacts/html-pr-review/SKILL.md)** — Code review companion for the reviewer: risk-coloured file map, annotated diff with margin notes and severity tags, call graph, and questions worth asking the author.
-- **[html-pr-writeup](./skills/html-artifacts/html-pr-writeup/SKILL.md)** — PR cover letter for the author: motivation, before/after behaviour, file-by-file tour, where to focus the review, test plan, and rollout.
-- **[html-thread-recap](./skills/html-artifacts/html-thread-recap/SKILL.md)** — Decision log of a Claude / ChatGPT / pairing thread for a teammate who wasn't in the room — questions explored, decisions and tradeoffs, dead ends, open questions, artifacts.
+## Authoring
 
-Catch-all (used only when none of the specialized skills fit):
-
-- **[html-artifact](./skills/html-artifacts/html-artifact/SKILL.md)** — General single-file HTML for the long tail: status reports, incident timelines, slide decks, concept explainers, design comparisons, dashboards, prototypes. Enforces the shared design tokens; content and structure are left to the user and the material.
-
-## Adding a Skill
-
-See [CLAUDE.md](./CLAUDE.md) for the layout and conventions.
+See [AGENTS.md](AGENTS.md) for layout and sync conventions. Keep instructions focused on project defaults, non-obvious constraints, and useful decision criteria; avoid generic tutorials and repeated approval gates.

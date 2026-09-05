@@ -1,197 +1,71 @@
 ---
 name: pr-fix-loop
-description: Iteratively detect and fix everything outstanding on a GitHub PR — CI failures, bot review findings, and human inline comments — then push, wait for CI, and re-scan until nothing actionable remains. Use when asked to "fix the remaining issues on a PR", "address PR feedback", "loop until CI is green", "auto-fix PR comments", "run a final fix pass before merge", or 检查 PR 状态和 comment 自动修复 / 修到没有新 finding 为止. Author-side by default; runs on any PR branch you have push access to, including PRs that already look ready to merge.
+description: Fix outstanding CI failures and review findings on a GitHub PR, push changes, and re-scan until no actionable work remains. Use for "address PR feedback", "loop until CI is green", "final fix pass", or "修到没有新 finding 为止", including already-green PRs.
 ---
 
 # PR Fix Loop
 
-Drive a PR to "done" by looping: scan for findings → triage → fix the clear ones → quick-check
-locally → commit → reply → push → wait for CI → re-scan. Stop when CI is green and no actionable
-finding remains, or when something needs your call.
+Scan → evaluate → fix → validate → push → re-scan. A green or mergeable PR still needs a complete scan when the user requests a final pass.
 
-A PR that is already green, mergeable, or marked ready to merge can still enter this loop when the
-user asks for a final fix pass. Do not skip preflight or scans just because the current PR state
-looks clean; run the same CI/comment/bot scan once, then stop immediately if nothing actionable is
-found.
+## Scope and preflight
 
-This is the author's side of code review: instead of producing findings, it closes them out. Every
-gh command the loop needs — repo context, CI status and `checks --watch`, the GraphQL review-thread
-query, the reply API, CI-log fetch, and the per-round commit — lives in
-[references/gh-loop.md](references/gh-loop.md).
+Check `gh auth status`, the PR's head/base repositories and branches, current head SHA, and local worktree state. Verify push permission on the actual head repository, which may be a fork. Prepare an isolated worktree if checkout would disturb unrelated work.
 
-**Prerequisite:** `gh` installed and authenticated (`gh auth status`).
+Use the existing request as authorization for the requested fix/push workflow; announce the first-pass findings and intended changes without requiring another "go". Honor plan-only requests. Posting replies or resolving threads requires explicit authorization from the user, including any already given for this session. Missing write-back authorization does not block code fixes or read-only verification.
 
-## Workflow overview
+Commands for scans and authorized write-back are in [gh-loop.md](references/gh-loop.md).
 
-0. Preflight — repo context, head SHA, **push permission**, checkout.
-1. Scan finding sources — CI, bot findings (inline + top-level), human inline comments.
-2. Triage into three buckets — auto-fix / needs-confirm / skip.
-3. **First round only:** show the plan and wait for "go".
-4. Fix the auto-fix bucket.
-5. Quick-check locally before push.
-6. Commit and push one round.
-7. Reply `addressed in <sha>`, resolve the addressed threads, then `gh pr checks --watch`.
-8. Re-scan and repeat until a stop condition fires.
+## Scan every round
 
-## 0) Preflight
+Capture the remote head SHA and inspect all relevant pages of:
+- CI checks for that head, including pending, failed, cancelled, and skipped states.
+- Unresolved inline review threads, with full replies and resolution state.
+- Top-level review bodies and PR issue comments, including bot findings posted as a single global comment.
 
-```bash
-OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-ME=$(gh api user --jq .login)
-```
+Treat connector accounts such as `claude`, `chatgpt-codex-connector`, `coderabbitai`, and `copilot` as bot-like even without a `[bot]` suffix. Evaluate human top-level feedback when it contains an actionable request; discussion is not automatically an instruction to change code.
 
-Check **push permission** (`gh api repos/$OWNER_REPO --jq .permissions.push`). If `false`, run in
-**advise-only** mode: do steps 1–2 every pass, print the fixes you *would* make, never
-commit/push/reply. Otherwise `gh pr checkout <pr>` and continue. Commands: [gh-loop.md](references/gh-loop.md#push-permission-preflight).
+Use GraphQL `reviewThreads.isResolved` for thread state. CI green, mergeability, an outdated line, an "addressed" reply, or a thumbs-up reaction does not prove a finding is fixed. Verify it against current source.
 
-Note who you are relative to the PR: you may be the author, or (as on real review PRs) the
-reviewer stepping in to fix — both are fine, replies just post under `$ME`.
+## Evaluate and fix
 
-## 1) Scan finding sources
+For each finding, determine whether it is:
+- **Actionable within scope:** evidence supports the defect and the intended correction. Fix it.
+- **Needs a decision:** missing intent or a material product/API/design choice changes the result. Surface the choice; continue independent in-scope work.
+- **Not actionable:** already fixed, incorrect, pre-existing, explicitly deferred, or outside scope. Record the reason.
 
-Refresh `HEAD_SHA` each pass (others may have pushed). Scan these four sources. Ignore only
-**human** top-level review bodies and issue comments (too discussion-heavy to act on safely) — do
-**not** ignore top-level comments from bot-like reviewers, since tools like `claude` post their
-findings as one global PR comment rather than attaching them to a line:
+Do not implement a bot suggestion merely because it is mechanical. Trace the relevant code and validate its premise first. Resolve routine implementation choices autonomously; seek input only for substantive ambiguity or additional authority.
 
-1. **CI failures** — `gh pr checks <pr> --json name,state,bucket,link`. Any `bucket: fail`.
-2. **Bot findings (inline)** — unresolved inline review threads from bot or bot-like reviewer
-   accounts, including `*[bot]` logins plus connector accounts such as `chatgpt-codex-connector`,
-   `claude`, `coderabbitai`, and `copilot`. Do not require a `[bot]` suffix. Their finding bodies
-   usually carry a `P0`–`P3` badge.
-3. **Bot findings (top-level)** — global PR comments from those same bot-like accounts: review
-   bodies and issue comments that summarize findings instead of pinning them to a line (`claude` in
-   particular posts a single global comment). Parse each finding out of the body — there may be
-   several per comment — and triage them exactly like inline bot findings. If a body carries no
-   actionable finding (a bare summary, "LGTM", or "see inline comments"), there is nothing to fix;
-   just mark it handled so it does not re-surface next round.
-4. **Human inline comments** — open review threads from the GraphQL query.
+For failing checks, read the actual logs. Use available CI tools, authenticated APIs, or browser access for external providers such as Jenkins; lack of `gh run` support alone is not a blocker. Distinguish infrastructure/deployment failures from code defects.
 
-Use the GraphQL `reviewThreads` query (not REST) for inline sources so you get `isResolved` and the
-full reply chain; fetch top-level bot comments with the reviews + issue-comments query in
-[gh-loop.md](references/gh-loop.md#top-level-bot-comments-reviews--issue-comments). Per the dedup
-rule (below), drop inline threads that are resolved or already carry our `addressed in <sha>` reply
-at/under HEAD, and drop top-level bot comments already marked handled (see dedup). Do not drop
-unresolved bot-like findings because the PR is mergeable, CI is green, review decision is empty, or a
-bot check was skipped. Commands:
-[gh-loop.md](references/gh-loop.md#inline-review-comments--thread-resolution-state-graphql).
+Make the smallest supported correction. Run repository-required checks and proportionate validation; do not invent commands or rewrite tests to conceal a failure.
 
-## 2) Triage into three buckets
+## Commit and push
 
-For every candidate, sort into exactly one bucket. **Only bucket ① is ever auto-applied.**
-
-- **① auto-fix** — clear and mechanical, intent unambiguous: a CI failure with a diagnosable cause,
-  a bot nit, "add a guard / null-check", "rename X", "extract this", "use library Y instead of the
-  hand-rolled thing" when the swap is obvious and low-risk.
-- **② needs-confirm** — a design trade-off, an open question, or ambiguity: "should we use sonner
-  or radix here?", "is this object or string?", anything where a reasonable engineer could pick
-  differently. List it for the user; do not touch it.
-- **③ skip** — explicitly deferred or out of scope: "separate PR", "historical issue, unrelated",
-  "TODO, handle later", or a thread already concluded in its replies. List it with the one-line
-  reason you skipped it.
-
-When unsure between ① and ②, it is **②**. Fixing the wrong thing on a shared PR is worse than asking.
-
-## 3) First-round gate
-
-On the **first** round, before any push:
-
-- Print the plan: bucket ① (what you'll change, file:line), bucket ② (needs your call), bucket ③
-  (skipped + why), and the current CI state.
-- Wait for an explicit "go" ("go", "改吧", "可以"). Treat "looks good"/"ok" as ambiguous — confirm once.
-
-After the first push, run **autonomously** — no gate per round — **except** when a *new*
-needs-confirm finding appears in a later round (stop guard below).
-
-## 4) Fix the auto-fix bucket
-
-Read each target file in full context before editing (the inline comment's `line` may be stale).
-Make the smallest change that genuinely resolves the finding — not a change that merely makes the
-comment look addressed. For a CI failure, fix the root cause; don't paper over a failing test.
-
-## 5) Quick-check locally before push
-
-Slow external CI (e.g. Jenkins) makes blind pushes expensive — catch what you can locally first.
-Detect the repo's commands (e.g. `package.json` scripts, `Makefile`, `turbo`/`pnpm`/`nx`) and run,
-scoped to what you touched where possible:
-
-1. typecheck (e.g. `tsc --noEmit`, `pnpm typecheck`)
-2. lint (e.g. `eslint <changed files>`, `pnpm lint`)
-3. the tests covering the files you changed
-
-If a command can't be discovered, say so and skip it — don't invent one. Only proceed to commit
-when the checks you *could* run pass. If a local check fails, fix it before pushing (it counts as
-the same round, not a new finding).
-
-## 6) Commit and push, then reply and resolve
-
-**One commit per round.** Stage only the files you changed this round, by path — never `git add -A`,
-`.`, or `-a`; on a shared branch, sweeping up someone else's work is the worst failure mode. The
-message summarizes the findings addressed. Push the commit before changing GitHub thread state.
-Then capture the pushed sha, reply on each addressed thread with
-`addressed in <sha>: <one line>`, and resolve that same thread.
-
-Only resolve threads from bucket ① that this round actually fixed and replied to. Do not resolve
-needs-confirm threads, skipped threads, threads with failed fixes, or threads where the code change
-was not pushed successfully.
-
-A **top-level bot comment** has no thread to resolve. After the fix is pushed, mark it handled with
-its dedup marker — a `$ME` reaction on the comment (`addReaction`), optionally plus one
-`addressed in <sha>` PR comment for traceability — but only once **every** actionable finding parsed
-from it is fixed-and-pushed or explicitly skipped with a reason. If any finding from it is
-needs-confirm, leave it unmarked and surface it.
-
-Commands: [gh-loop.md](references/gh-loop.md#commit--push-per-round),
-[reply](references/gh-loop.md#reply-on-a-thread-loops-write-back), and
-[top-level bot comments](references/gh-loop.md#top-level-bot-comments-reviews--issue-comments).
-
-## 7) Reply, resolve, and wait for CI
+Keep task changes separate from pre-existing edits, including already staged files. Stage explicit task paths; for wholly task-owned files use a path-scoped commit:
 
 ```bash
-git push                                    # plain push; never force-push a shared branch
-# reply to and resolve addressed threads here
-gh pr checks <pr> --watch --interval 30     # blocks until all checks finish
+git add -- "<TASK_FILE>"
+git -c commit.gpgsign=false commit --only -m "<ROUND_SUMMARY>" -- "<TASK_FILE>"
 ```
 
-Then go to step 1 and re-scan (CI result + any new comments that arrived meanwhile).
+`--only` commits the working-tree contents of the selected paths. For files with mixed ownership, isolate the task hunks in a separate index or worktree. Inspect the commit before pushing to the PR head branch. Never force-push a shared branch.
 
-## Stop conditions
+If the remote advanced, integrate the new head safely and revalidate before a normal push. Do not overwrite another contributor's work.
 
-End the loop and report when **any** fires:
+## Verify and write back
 
-- **Done** — CI green **and** no bucket-① finding remains. (The success case.)
-- **Max rounds** — default **5**. Stop and summarize what's left.
-- **No progress** — the same finding survives two consecutive rounds (CI still failing on the same
-  cause, or the same comment still open after a fix attempt). Stop and escalate it.
-- **CI undiagnosable** — a check failed but the log isn't reachable (external/Jenkins `link` gh
-  can't fetch). Surface the `link` and stop for the user to paste the relevant log.
-- **New needs-confirm** — a bucket-② finding appears in a later round. Pause and ask, consistent
-  with the first-round gate.
+After a successful push, record the pushed SHA. If authorized, reply `addressed in <SHA>: <reason>` and resolve only the threads whose findings were verified fixed. Do not resolve skipped, undecided, or unsuccessfully pushed fixes.
 
-## Dedup — how "new" is decided
+Top-level comments have no thread to resolve. Track findings by comment ID, body version, and current code evidence; do not use reactions as durable completion markers. Re-evaluate edited comments and later replies.
 
-No local state file. Every round re-scans from scratch; the markers live on GitHub, so the loop
-survives interruption and re-invocation:
+Wait for CI and any requested automated reviews using the available wait mechanism; keep the user updated. Re-scan after checks finish and confirm the head is still the one validated.
 
-- A **thread** is handled if `isResolved`, or its last comment is `$ME`'s `addressed in <sha>` with
-  `<sha>` an ancestor of HEAD and no later reply reopening it.
-- A **top-level bot comment** is handled if it carries `$ME`'s reaction marker. If the bot edits the
-  comment after that (`lastEditedAt` later than the reaction), treat it as new and re-triage.
-- A **CI check** is a finding only while it's `bucket: fail` at the current HEAD.
-- A finding seen-but-unfixed across rounds trips the no-progress guard rather than looping forever.
+## Completion and stopping
 
-## Per-round and final output
+Report **done** only when relevant checks/reviews have completed successfully and no actionable or undecided finding remains. If code is fixed but a thread remains unresolved, report both states accurately.
 
-Each round, print a compact status: round number, what was fixed + pushed (with sha), what's in
-buckets ② / ③, and the CI verdict you're now waiting on.
+Do not present skipped/cancelled checks, absent expected checks, or an unscanned source as green. Inspect whether those gaps matter and state the verification limit.
 
-On stop, render a summary:
+Pause dependent work when user input, inaccessible evidence, or additional authority is essential. If repeated attempts make no progress, report the cause and remaining work instead of repeating the same action. Honor explicit user time/round limits; otherwise do not stop solely because an arbitrary round count was reached.
 
-```
-## PR fix loop — <done | stopped: <reason>>
-**Rounds**: <n>   **CI**: <green | failing: <check>>
-**Fixed**: <count> — <one line each, file + sha>
-**Needs your call (②)**: <list, or none>
-**Skipped (③)**: <list + reason, or none>
-**Still open**: <anything left and why>
-```
+Return the PR link, pushed commits, validation status, and any remaining decisions or limitations.
