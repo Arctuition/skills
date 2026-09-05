@@ -1,109 +1,26 @@
-# Source recipes
+# Community source recipes
 
-Per-platform `WebSearch` / `WebFetch` recipes for the `last30days` skill. `<TOPIC>` is the
-user's subject; `<MONTH YEAR>` is the current month/year recency anchor (e.g. `June 2026`).
-Run the source searches in a single message so they execute in parallel.
+Use the session's available search and fetch tools; parameter names vary by provider. Apply supported date filters, then verify dates on the actual sources.
 
-## Reddit — discussion + sentiment + upvotes
+| Source | Starting query or page | Evidence to inspect |
+|---|---|---|
+| Reddit | `site:reddit.com <TOPIC> <DATE_ANCHOR>`, narrowed to a relevant subreddit | Post, substantive replies, date, visible votes/comments |
+| Hacker News | `site:news.ycombinator.com <TOPIC>` or the API below | Discussion date, practitioner reports, dissent |
+| GitHub | Known repository's discussions, issues, releases, and recent PRs | Dated usage reports and actual changes; a current star count is not growth |
+| YouTube | `site:youtube.com <TOPIC> review <DATE_ANCHOR>` | Upload date and accessible transcript/description; disclose when only metadata is available |
+| X | `site:x.com <TOPIC> <DATE_ANCHOR>`, optionally a known author | Original post and date; coverage may be sparse |
+| Practitioner blogs | `<TOPIC> experience <DATE_ANCHOR>` | First-hand use and publication date, separated from promotional reposts |
 
-```
-WebSearch:
-  query: "<TOPIC> <MONTH YEAR>"
-  allowed_domains: ["reddit.com"]
-```
+## Hacker News date-filter query
 
-Then `WebFetch` the top thread for the claim + top comments + counts:
+URL-encode the topic and substitute the window start as a Unix timestamp:
 
-```
-WebFetch:
-  url: <reddit thread url>
-  prompt: "What is the main claim or question, what do the top comments say
-           (summarize the highest-voted ones), and roughly how many upvotes/comments?
-           Quote at most one short line verbatim."
+```text
+https://hn.algolia.com/api/v1/search_by_date?query=<ENCODED_TOPIC>&tags=story&numericFilters=created_at_i%3E<UNIX_CUTOFF>
 ```
 
-Tip: Reddit's own search is weak; Google-style domain-pinned `WebSearch` finds the high-engagement
-threads. Add a likely subreddit to sharpen: `"<TOPIC> site:reddit.com/r/<sub>"` style intent.
+Read the returned story IDs and open `https://news.ycombinator.com/item?id=<STORY_ID>` for the discussion. Inspect pagination when a query has more results than the returned page.
 
-## Hacker News — practitioner takes + contrarians
+## Coverage
 
-Domain-pinned search:
-
-```
-WebSearch:
-  query: "<TOPIC> <MONTH YEAR>"
-  allowed_domains: ["news.ycombinator.com"]
-```
-
-Or query the Algolia HN API directly (sorted by date, last-window) via `WebFetch`:
-
-```
-WebFetch:
-  url: "https://hn.algolia.com/api/v1/search_by_date?query=<TOPIC>&tags=story&numericFilters=created_at_i%3E<UNIX_CUTOFF>"
-  prompt: "List the story titles, points, number of comments, and URLs from this JSON,
-           newest first."
-```
-
-`<UNIX_CUTOFF>` = unix timestamp of the window start. Then `WebFetch` the item page for top comments:
-`https://news.ycombinator.com/item?id=<ID>`.
-
-## GitHub — release/PR/star momentum (strong recency signal)
-
-```
-WebSearch:
-  query: "<TOPIC> release OR changelog <MONTH YEAR>"
-  allowed_domains: ["github.com"]
-```
-
-For a known repo, fetch releases and recent activity directly:
-
-```
-WebFetch:
-  url: "https://github.com/<owner>/<repo>/releases"
-  prompt: "Summarize the releases from the last 30 days: version, date, and the headline changes."
-```
-
-Also useful: `.../pulls?q=is%3Apr+sort%3Aupdated-desc` (what's actively being worked on) and the
-repo homepage for star count / recent commit cadence.
-
-## YouTube — reviews / walkthroughs + view counts
-
-```
-WebSearch:
-  query: "<TOPIC> review OR tutorial <MONTH YEAR>"
-  allowed_domains: ["youtube.com"]
-```
-
-`WebFetch` a top video URL for channel, view count, upload date, and the description/gist. Treat
-view count as the engagement weight.
-
-## X / Twitter — best-effort
-
-```
-WebSearch:
-  query: "<TOPIC> <MONTH YEAR>"
-  allowed_domains: ["x.com", "twitter.com"]
-```
-
-X is only partially indexed by web search. If results are thin, don't fake coverage — note it in the
-brief's **Gaps** section and lean on Reddit/HN/GitHub. If a key handle is known, try
-`"<TOPIC> from:<handle>"` intent in the query.
-
-## Open web — blogs, news, Substack
-
-A plain search with no domain pin, recency-anchored, to catch everything the pinned searches miss:
-
-```
-WebSearch:
-  query: "<TOPIC> <MONTH YEAR> latest"
-```
-
-## Recency anchors
-
-`WebSearch` has no hard date filter, so steer it with text:
-
-- The current month + year: `June 2026`.
-- Relative terms: `this week`, `latest`, `just released`, `now`.
-- Drop a year only when the window spans one; otherwise month+year is tighter.
-
-Always discard results whose visible date is outside the window, even if they rank well.
+A month/year keyword is a search aid, not a date filter. Discard out-of-window results or clearly label them as historical context. Do not report inaccessible platforms as searched in depth or infer a video's substance from its title.

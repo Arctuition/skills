@@ -1,73 +1,48 @@
-# gh CLI reference for the PR fix loop
+# GitHub commands for the fix loop
 
-Every gh command the loop uses, in workflow order. Self-contained — verify flags with
-`gh <command> --help` if unsure.
+Check `gh auth status` before network calls. PR scans target the base repository; push permission and pushes target the actual head repository.
 
-## Context every round needs
+## Context and checks
 
 ```bash
-OWNER_REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
-OWNER=${OWNER_REPO%/*}; REPO=${OWNER_REPO#*/}                    # for the GraphQL variables below
-ME=$(gh api user --jq .login)                                   # to find our own "addressed in" replies
-HEAD_SHA=$(gh pr view <pr> --json headRefOid --jq .headRefOid)  # refresh every round — others may push
+gh pr view "<PR>" --repo "<BASE_OWNER/REPO>" \
+  --json headRefOid,headRefName,headRepository,headRepositoryOwner,baseRefName,url
+gh api "repos/<HEAD_OWNER/REPO>" --jq .permissions.push
+gh pr checks "<PR>" --repo "<BASE_OWNER/REPO>" --json name,state,bucket,link,workflow
 ```
 
-## Push-permission preflight
+Capture the head before scanning and recheck it after validation. `bucket` can be pass, fail, pending, skipping, or cancel; assess missing or non-passing checks instead of treating them all as success.
 
-The loop only commits/pushes when you can write to the repo. Check before checkout:
+Wait using the environment's asynchronous execution/wait support so progress updates remain possible:
 
 ```bash
-gh api repos/$OWNER_REPO --jq .permissions.push   # true / false
+gh pr checks "<PR>" --repo "<BASE_OWNER/REPO>" --watch --interval 30
 ```
 
-`false` → drop to **advise-only** mode: scan + triage + print fixes, never commit/push/reply.
+For GitHub Actions failures:
 
 ```bash
-gh pr checkout <pr>     # work on the PR branch in the current repo
+gh run view "<RUN_ID>" --repo "<OWNER/REPO>" --log-failed
 ```
 
-## CI status
+For external CI, follow the check's link with available provider tools or authenticated browser/API access. Report an access gap only after checking available in-scope alternatives.
+
+## Inline review threads
+
+REST review comments do not include thread resolution state. This GraphQL query paginates the thread connection:
 
 ```bash
-# Human-readable
-gh pr checks <pr>
-
-# Structured — bucket is one of: pass | fail | pending | skipping | cancel
-gh pr checks <pr> --json name,state,bucket,link,workflow
-```
-
-`gh pr checks <pr> --watch --interval 30` **blocks** until every check finishes, then exits
-non-zero if any failed. This is the between-rounds wait. The `link` field tells you where a
-failure lives:
-
-- **GitHub Actions** (`link` → `github.com/<owner>/<repo>/actions/runs/<id>`): fetch the log.
-  ```bash
-  RUN_ID=<id from link>
-  gh run view $RUN_ID --log-failed        # only the failed steps
-  ```
-- **External CI** (`link` → e.g. `ci.arcsitedev.com/...` Jenkins): gh **cannot** fetch the log.
-  Surface the `link` and stop for the user to paste the relevant log (see stop guards in SKILL.md).
-
-## Inline review comments + thread resolution state (GraphQL)
-
-REST `/pulls/<pr>/comments` does **not** expose whether a thread is resolved. Use GraphQL so the
-loop can skip resolved/outdated threads and read the full reply chain:
-
-```bash
-gh api graphql -F owner="$OWNER" -F repo="$REPO" -F pr=<pr> -f query='
-query($owner:String!, $repo:String!, $pr:Int!) {
-  repository(owner:$owner, name:$repo) {
-    pullRequest(number:$pr) {
-      reviewThreads(first:100) {
+gh api graphql --paginate -F owner="<OWNER>" -F name="<REPO>" -F number=<PR_NUMBER> -f query='
+query($owner:String!, $name:String!, $number:Int!, $endCursor:String) {
+  repository(owner:$owner, name:$name) {
+    pullRequest(number:$number) {
+      reviewThreads(first:100, after:$endCursor) {
+        pageInfo { hasNextPage endCursor }
         nodes {
-          id
-          isResolved
-          isOutdated
-          path
-          line
-          originalLine
-          comments(first:50) {
-            nodes { databaseId author { login } body createdAt isMinimized minimizedReason }
+          id isResolved isOutdated path line originalLine
+          comments(first:100) {
+            pageInfo { hasNextPage endCursor }
+            nodes { databaseId author { login } body createdAt updatedAt }
           }
         }
       }
@@ -76,109 +51,53 @@ query($owner:String!, $repo:String!, $pr:Int!) {
 }'
 ```
 
-(`-F pr=<pr>` passes an int; `$OWNER` / `$REPO` come from the Context block above.)
-
-Per thread, the loop derives state from this payload:
-
-- **skip** if `isResolved` is true.
-- **already addressed by us** if the *last* comment is authored by `$ME` and its body starts with
-  `addressed in ` — and no later comment from someone else reopened the thread.
-- otherwise it's an **open** thread → triage it (SKILL.md step 3).
-
-## Bot findings
-
-Bot reviewers often have logins ending in `[bot]`, but connector accounts may not. Treat these as
-bot-like reviewers even without a `[bot]` suffix: `chatgpt-codex-connector`, `claude`,
-`coderabbitai`, and `copilot`. Their finding bodies usually carry a priority badge (`P0`–`P3`);
-parse it to seed the triage priority.
-
-Do not use PR mergeability, review decision, or check status as a proxy for whether bot findings
-remain. For example, a PR can be clean/ready to merge while still having unresolved
-`chatgpt-codex-connector` review threads. The thread's `isResolved` state is the source of truth.
-
-## Top-level bot comments (reviews + issue comments)
-
-Some bots — `claude` especially — post findings as **one global comment**, not inline. These never
-appear in `reviewThreads`, so the inline scan misses them entirely. Fetch them from two places: PR
-**review bodies** and PR **issue comments**. Both implement `Reactable`, so a `$ME` reaction is a
-durable "handled" marker (no thread to resolve), and both expose `lastEditedAt` to detect re-edits.
+Nested comment connections paginate separately. For any thread with `comments.pageInfo.hasNextPage`, retrieve the remaining replies, starting from its returned cursor:
 
 ```bash
-gh api graphql -F owner="$OWNER" -F repo="$REPO" -F pr=<pr> -f query='
-query($owner:String!, $repo:String!, $pr:Int!) {
-  repository(owner:$owner, name:$repo) {
-    pullRequest(number:$pr) {
-      reviews(first:100) {
-        nodes {
-          id author { login } body state submittedAt lastEditedAt
-          reactions(first:100, content: THUMBS_UP) { nodes { user { login } createdAt } }
-        }
-      }
-      comments(first:100) {
-        nodes {
-          id databaseId author { login } body createdAt lastEditedAt
-          reactions(first:100, content: THUMBS_UP) { nodes { user { login } createdAt } }
-        }
+gh api graphql --paginate -F id="<THREAD_NODE_ID>" -F endCursor="<COMMENTS_CURSOR>" -f query='
+query($id:ID!, $endCursor:String) {
+  node(id:$id) {
+    ... on PullRequestReviewThread {
+      comments(first:100, after:$endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes { databaseId author { login } body createdAt updatedAt }
       }
     }
   }
 }'
 ```
 
-Keep only nodes whose `author.login` is a bot-like account (same list as inline bot findings) and
-whose body has non-empty content. A node is **handled** if its `reactions` includes one by `$ME` —
-unless `lastEditedAt` is later than that reaction's `createdAt`, in which case re-triage it. Parse
-each actionable finding out of the body (often several, with `P0`–`P3` badges).
+Read the full reply chain before triage. `isOutdated` only indicates stale diff context. An unresolved thread with an "addressed" reply still needs code verification and accurate reporting of its resolution state.
 
-### Mark a top-level bot comment handled
+## Top-level findings
 
-After the fix is pushed and every actionable finding from the comment is fixed-or-skipped, add the
-reaction marker on its node `id` (works for both review bodies and issue comments):
+Fetch both review bodies and PR issue comments; bots may put all their findings in one global comment:
 
 ```bash
-gh api graphql -f query='
-mutation($subjectId:ID!) {
-  addReaction(input:{subjectId:$subjectId, content: THUMBS_UP}) { reaction { content } }
-}' -F subjectId="<review or comment node id>"
+gh api --paginate "repos/<OWNER/REPO>/pulls/<PR>/reviews"
+gh api --paginate "repos/<OWNER/REPO>/issues/<PR>/comments"
 ```
 
-Optionally cite the sha once for traceability (issue comments have no inline thread to reply on):
+Extract individual findings and deduplicate against inline threads. Use IDs and current body content to detect edits, then verify against source. A reaction is not proof that a finding was fixed.
+
+## Authorized replies and resolution
+
+Only after a fix is verified and pushed, and the user authorized write-back:
 
 ```bash
-gh pr comment <pr> --body "addressed in $HEAD_SHA: <one line per finding from the bot's comment>"
+gh api -X POST "repos/<OWNER/REPO>/pulls/<PR>/comments/<ROOT_COMMENT_ID>/replies" \
+  --input "<REPLY_JSON_FILE>"
 ```
 
-## Reply and resolve a thread (loop's write-back)
-
-After the fix commit has been pushed, reply to the thread that a comment belongs to —
-`<comment_id>` is the thread's top-level comment `databaseId`. Then resolve the same thread with
-its GraphQL node `id`.
+Write `{"body": "addressed in <PUSHED_SHA>: <REASON>"}` with a file-editing tool. Use the thread's root comment database ID for the reply, and its GraphQL node ID to resolve:
 
 ```bash
-gh api -X POST repos/$OWNER_REPO/pulls/<pr>/comments/<comment_id>/replies \
-  -f body="addressed in $HEAD_SHA: <one line on what changed>"
-```
-
-```bash
-gh api graphql -f query='
+gh api graphql -F threadId="<THREAD_NODE_ID>" -f query='
 mutation($threadId:ID!) {
   resolveReviewThread(input:{threadId:$threadId}) {
     thread { id isResolved }
   }
-}' -F threadId="<thread node id>"
+}'
 ```
 
-Resolve only after the fix commit was pushed and the reply was posted. Resolve only bucket-①
-threads that were actually fixed in this round; never resolve needs-confirm or skipped threads.
-
-## Commit & push (per round)
-
-Stage only files you changed this round, by path; never `git add -A`/`.`/`-a` — on a shared
-branch, sweeping up someone else's uncommitted work is the worst failure mode.
-
-```bash
-git add <only the files this round touched>
-git commit -m "<summary of findings addressed this round>"
-git push        # plain push to the PR branch; never force-push a shared branch
-HEAD_SHA=$(git rev-parse HEAD)   # the sha to cite in replies this round
-```
+Confirm the returned resolution state. Top-level comments have no resolvable thread; an authorized summary can use `gh pr comment "<PR>" --repo "<OWNER/REPO>" --body-file "<SUMMARY_FILE>"`. Inspect existing write-back before retrying an ambiguous response.

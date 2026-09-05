@@ -1,232 +1,60 @@
 ---
 name: sentry-issue-resolver
-description: "Analyze and resolve Sentry issues by fetching detailed issue information, performing deep root cause analysis, and providing actionable solutions. Use when the user asks to: (1) Analyze a Sentry issue, (2) Debug or investigate a Sentry error, (3) Fix a Sentry issue, (4) Get root cause analysis for application errors, (5) Resolve Sentry alerts. Works with Sentry URLs to fetch stack traces, error context, and event data."
+description: Diagnose or fix Sentry errors from an issue URL or ID, live events, and affected source code.
 ---
 
 # Sentry Issue Resolver
 
-Fetch Sentry issues with complete stack traces, analyze root causes, and provide actionable solutions using Sentry REST API.
+Establish the failure from live event evidence, then trace it through the relevant source. An analysis request ends with findings and a proposed fix; implement when the user requests a fix. Do not change Sentry issue status without authorization.
 
-## Workflow
+## Obtain evidence
 
-When the user requests Sentry issue analysis:
+Use an available authenticated Sentry connector, or the REST API below. Resolve the organization and issue from the supplied URL; preserve the host for self-hosted installations.
 
-1. **Parse the Sentry URL**
-   - Extract org slug from subdomain (e.g., `arcsite` from `arcsite.sentry.io`)
-   - Extract issue ID from path (e.g., `7219768209` from `/issues/7219768209/`)
+For REST, check prerequisites without displaying credentials:
 
-   Example URL: `https://arcsite.sentry.io/issues/7219768209/?project=1730879`
-
-2. **Check Authentication**
-
-   First verify that `SENTRY_AUTH_TOKEN` is set in the environment:
-   ```bash
-   echo $SENTRY_AUTH_TOKEN
-   ```
-
-   If not set, inform the user:
-   "Please set your Sentry auth token: `export SENTRY_AUTH_TOKEN=your_token_here`"
-   "You can create a token at: https://sentry.io/settings/account/api/auth-tokens/"
-
-3. **Fetch Event List**
-
-   Get the list of events for the issue to obtain event IDs:
-   ```bash
-   curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-   ```
-
-   Example:
-   ```bash
-   curl "https://sentry.io/api/0/organizations/arcsite/issues/7219768209/events/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-   ```
-
-   If jq is available, extract event IDs:
-   ```bash
-   curl "..." | jq -r '.[].eventID'
-   ```
-
-   If jq is not available, that's fine - work with the raw JSON response.
-
-4. **Fetch Complete Event Details**
-
-   Get the full event details including stack trace for the latest event:
-   ```bash
-   curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-   ```
-
-   Example:
-   ```bash
-   curl "https://sentry.io/api/0/organizations/arcsite/issues/7219768209/events/abc123/" \
-     -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-   ```
-
-   If jq is available, extract stack trace info:
-   ```bash
-   curl "..." | jq -r '.exception.values[]?.stacktrace.frames[] | "\(.filename):\(.lineno) \(.function)"'
-   ```
-
-   The response includes:
-   - `exception.values[].stacktrace.frames[]` - Complete stack trace with file paths, line numbers, and function names
-   - `exception.values[].type` and `exception.values[].value` - Error type and message
-   - `tags`, `user`, `request` - Context data
-   - `context` - Additional environment and runtime information
-
-5. **Analyze the Issue**
-   - Examine the stack trace for the error location
-   - Identify the error type and message
-   - Review the error context (request data, user actions, environment)
-   - Look for patterns in the events (frequency, affected users, common paths)
-   - Trace the execution flow to find the root cause
-
-6. **Provide Deep Root Cause Analysis**
-
-   Include in the analysis:
-   - **Error Summary**: What went wrong (error type, message, affected file/function)
-   - **Root Cause**: Why it happened (logical error, null reference, race condition, etc.)
-   - **Context**: When/where it occurs (specific user actions, endpoints, environments)
-   - **Impact**: Severity and user experience implications
-   - **Code Location**: Specific file paths and line numbers from stack trace
-
-7. **Suggest Solutions**
-
-   Provide 1-2 actionable solutions:
-   - **Solution 1**: The most direct fix (e.g., add null check, fix logic error)
-   - **Solution 2**: Alternative approach or preventive measure (e.g., refactor, add validation)
-
-   Each solution should include:
-   - Clear description of the fix
-   - Specific code changes or implementation steps
-   - Trade-offs or considerations
-
-8. **Output Format**
-
-   Structure the response as:
-
-   ```
-   ## Sentry Issue Analysis: [ISSUE_ID]
-
-   ### Error Summary
-   [Brief description of what went wrong]
-
-   ### Root Cause
-   [Deep analysis of why this happened]
-
-   ### Context
-   - Frequency: [how often it occurs]
-   - Affected: [users, endpoints, environments]
-   - Trigger: [what action causes it]
-
-   ### Impact
-   [Severity and user experience impact]
-
-   ### Code Location
-   [File paths and line numbers from stack trace]
-
-   ### Suggested Solutions
-
-   #### Solution 1: [Direct Fix]
-   [Description and implementation]
-
-   #### Solution 2: [Alternative/Preventive]
-   [Description and implementation]
-   ```
-
-## Sentry API Commands
-
-**List events for an issue (get event IDs):**
 ```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
+command -v curl
+test -n "$SENTRY_AUTH_TOKEN"
+```
+
+If authentication is missing, explain how to configure it without asking the user to paste the token into chat. Do not log authorization headers.
+
+Set `SENTRY_BASE_URL` to the supplied installation's base URL, including the scheme and any path prefix, without a trailing slash (for hosted Sentry, `https://sentry.io`). List issue events and retrieve a relevant full event:
+
+```bash
+SENTRY_BASE_URL="<SENTRY_BASE_URL>"
+curl --fail-with-body --silent --show-error \
+  "$SENTRY_BASE_URL/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
+  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
+
+curl --fail-with-body --silent --show-error \
+  "$SENTRY_BASE_URL/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
   -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
 ```
 
-With jq to extract just the event IDs:
+Honor any requested event, environment, or time window. Use additional events or pagination when needed to establish a pattern; do not infer frequency or affected-user counts from a single sample.
+
+Inspect the actual response schema. In issue-event REST responses, exception data is under `entries[]` where `type == "exception"`; do not assume the SDK's top-level `exception.values` shape. For a saved response:
+
 ```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
-  | jq -r '.[].eventID'
+jq '.entries[] | select(.type == "exception") | .data.values[] |
+  {type, value, frames: .stacktrace.frames}' "<EVENT_JSON>"
 ```
 
-**Get complete event details (including stack trace):**
-```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
-```
+Keep event ID/time, release, environment, transaction, breadcrumbs, and relevant request context with the stack trace. Share only the contextual fields needed to explain the failure.
 
-With jq to extract stack trace:
-```bash
-curl "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
-  -H "Authorization: Bearer $SENTRY_AUTH_TOKEN" \
-  | jq -r '.exception.values[]?.stacktrace.frames[] | "\(.filename):\(.lineno) \(.function)"'
-```
+## Diagnose and fix
 
-**Extract specific information with jq (optional):**
-```bash
-# Get error message
-jq -r '.exception.values[0].value'
+- Compare the event's deployed release with the inspected source. A merged fix may not have reached the affected worker or frontend release.
+- Follow application frames and callers to establish the triggering input or state. Inspect the frame data instead of assuming the first frame is the throw site.
+- Separate confirmed evidence from hypotheses and state what would distinguish competing explanations.
+- For a requested fix, preserve existing contracts, make the smallest supported change, and run proportionate validation. Distinguish local verification from deployment or production recovery.
 
-# Get error type
-jq -r '.exception.values[0].type'
+Report the failure, trigger and impact, cause with code locations, and the fix or next diagnostic step. Avoid filling a fixed report template or manufacturing a second solution.
 
-# Get user context
-jq -r '.user'
+## API references
 
-# Get request info
-jq -r '.request'
-```
-
-**Note:** jq is optional. If the user doesn't have jq installed, work with the raw JSON response directly.
-
-## Working with API Responses
-
-**When jq is available:**
-- Use it to extract and format specific fields for easier analysis
-- Pipe curl output directly to jq for cleaner results
-
-**When jq is NOT available:**
-- Work with the raw JSON response
-- Look for key fields manually in the JSON:
-  - `exception.values[].type` - Error type
-  - `exception.values[].value` - Error message
-  - `exception.values[].stacktrace.frames[]` - Stack trace frames
-  - Each frame has: `filename`, `lineno`, `function`, `context_line`, `pre_context`, `post_context`
-- The latest event is typically most useful for analysis
-
-**Typical Workflow:**
-1. First, fetch the events list to get the latest event ID (usually first in the array)
-2. Then fetch that event's full details
-3. Extract stack trace from `exception.values[0].stacktrace.frames`
-4. The frames are ordered from innermost (where error occurred) to outermost
-5. Look at `context_line`, `pre_context`, and `post_context` for code context around the error
-
-## Analysis Tips
-
-**Common Error Patterns:**
-
-- **Null/Undefined Reference**: Variable accessed before initialization or after it was set to null
-- **Type Error**: Incorrect data type used (string vs number, missing property)
-- **Network/Timeout**: Failed API calls, slow responses, connection issues
-- **Race Condition**: Async operations completing in unexpected order
-- **Logic Error**: Incorrect conditional logic or algorithm implementation
-- **Missing Validation**: User input not properly validated or sanitized
-
-**Root Cause Techniques:**
-
-1. **Follow the Stack Trace**: Start from the top (where error was thrown) and trace backward
-2. **Check Recent Changes**: Look for recent commits that touched the failing code
-3. **Examine Context Data**: Request parameters, user state, environment variables
-4. **Pattern Recognition**: Does it only happen for certain inputs, users, or environments?
-5. **Timing Analysis**: Does it happen at specific times, after specific actions, or randomly?
-
-## Prerequisites
-
-- **SENTRY_AUTH_TOKEN** environment variable set with a valid Sentry auth token
-  - Create a token at: https://sentry.io/settings/account/api/auth-tokens/
-  - Set it: `export SENTRY_AUTH_TOKEN=your_token_here`
-- **curl** (pre-installed on most systems)
-- **jq** (optional, for easier JSON parsing)
-  - Install: `brew install jq` (macOS) or `apt-get install jq` (Linux)
-  - Not required - can work with raw JSON if jq is unavailable
-- Access to the Sentry organization (typically arcsite)
+Consult these when adapting an API call:
+- [List an issue's events](https://docs.sentry.io/api/events/list-an-issues-events/)
+- [Retrieve an issue event](https://docs.sentry.io/api/events/retrieve-an-issue-event/)
