@@ -32,6 +32,8 @@ Assume the model can perform ordinary coding, writing, and tool use. Keep projec
 
 Delete duplicate tutorials and output scaffolding. Move substantial conditional details into linked references and explain when to read them. Preserve user intent and existing authorization; ask only for missing information or authority that materially affects the task.
 
+The user's instructions take precedence over skill guidelines. Treat actionable requests such as "can you" or "help me" as instructions to execute within the requested scope; do not add confirmation gates or broaden a skill's discovery triggers to express this behavior.
+
 ## Conventions
 
 - Every skill must have a top-level [README.md](README.md) entry linked to its `SKILL.md`.

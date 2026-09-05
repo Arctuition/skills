@@ -20,15 +20,16 @@ test -n "$SENTRY_AUTH_TOKEN"
 
 If authentication is missing, explain how to configure it without asking the user to paste the token into chat. Do not log authorization headers.
 
-List issue events and retrieve a relevant full event:
+Set `SENTRY_BASE_URL` to the supplied installation's base URL, including the scheme and any path prefix, without a trailing slash (for hosted Sentry, `https://sentry.io`). List issue events and retrieve a relevant full event:
 
 ```bash
+SENTRY_BASE_URL="<SENTRY_BASE_URL>"
 curl --fail-with-body --silent --show-error \
-  "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
+  "$SENTRY_BASE_URL/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/" \
   -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
 
 curl --fail-with-body --silent --show-error \
-  "https://sentry.io/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
+  "$SENTRY_BASE_URL/api/0/organizations/<ORG_SLUG>/issues/<ISSUE_ID>/events/<EVENT_ID>/" \
   -H "Authorization: Bearer $SENTRY_AUTH_TOKEN"
 ```
 

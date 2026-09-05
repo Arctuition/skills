@@ -64,6 +64,8 @@ Resolve mechanical conflicts that preserve the source intent; pause for conflict
 
 Validate the planned checks per layer. Verify the aggregate stack preserves the intended source patch, including merge-resolution edits; account explicitly for adaptations required by a newer base. A compiling top layer alone does not prove that intermediate layers are usable.
 
+When collaboration tools are available, independent layer reviews or checks can run in parallel against fixed layer SHAs in separate worktrees. Keep dependent layer construction and publication ordered, and revalidate affected results if a layer changes.
+
 Fix construction-related failures before publishing. For unrelated or unavailable validation, state the limitation and proceed only within the user's accepted constraints.
 
 ## Publish and hand off

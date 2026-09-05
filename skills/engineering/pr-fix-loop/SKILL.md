@@ -28,6 +28,8 @@ Use GraphQL `reviewThreads.isResolved` for thread state. CI green, mergeability,
 
 ## Evaluate and fix
 
+When collaboration tools are available, delegate independent findings against the same captured head if it saves time or improves coverage. Reconcile results before editing shared files or pushing.
+
 For each finding, determine whether it is:
 - **Actionable within scope:** evidence supports the defect and the intended correction. Fix it.
 - **Needs a decision:** missing intent or a material product/API/design choice changes the result. Surface the choice; continue independent in-scope work.
