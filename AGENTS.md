@@ -24,7 +24,7 @@ description: One or two sentences describing the capability and actual trigger p
 ---
 ```
 
-Keep descriptions specific enough to select the right skill. Do not turn ordinary reviews, summaries, or explanations into a different deliverable through overly broad triggers.
+Keep descriptions short and specific to task selection; put workflow defaults and authorization details in the body. Do not turn ordinary reviews, summaries, or explanations into a different deliverable through overly broad triggers.
 
 ## Instructions worth keeping
 

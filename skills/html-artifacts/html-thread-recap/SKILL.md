@@ -1,6 +1,6 @@
 ---
 name: html-thread-recap
-description: Create a self-contained HTML handoff from a conversation, capturing decisions, reasoning, abandoned approaches, and remaining work. Use for an HTML recap or visual conversation handoff; a routine "总结一下" can be answered directly in chat.
+description: Create an HTML conversation recap or visual handoff of decisions and remaining work. A routine "总结一下" does not require this skill.
 ---
 
 # HTML Thread Recap
@@ -30,5 +30,5 @@ Assemble one self-contained HTML file. Render it in an available browser and ins
 Default filename: `<TOPIC>-recap.html`.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Opening a browser for local verification is part of building the artifact; opening the final file for the user or sharing it externally requires a request or existing authorization.
 <!-- shared:save-conventions-end -->

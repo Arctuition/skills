@@ -1,6 +1,6 @@
 ---
 name: html-pr-writeup
-description: Create a self-contained HTML explanation of a PR for its reviewers, covering behavior, motivation, risk, and validation. Use for an HTML PR writeup or visual change handoff; ordinary GitHub PR descriptions should remain Markdown.
+description: Create an author's HTML PR writeup or visual change handoff. Ordinary GitHub PR descriptions do not require this skill.
 ---
 
 # HTML PR Writeup
@@ -32,5 +32,5 @@ Assemble one self-contained HTML file. Render it in an available browser and ins
 Default filename: `pr-<NUMBER>-writeup.html`, or `pr-<BRANCH>-writeup.html` if no PR number exists.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Opening a browser for local verification is part of building the artifact; opening the final file for the user or sharing it externally requires a request or existing authorization.
 <!-- shared:save-conventions-end -->

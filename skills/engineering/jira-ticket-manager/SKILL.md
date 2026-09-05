@@ -1,6 +1,6 @@
 ---
 name: jira-ticket-manager
-description: Create, search, view, or update Jira tickets with jira-cli, including requests such as "show my open bugs", "create a story", or "更新这个 ticket". Uses ArcSite components and defaults new tickets to Backlog.
+description: Create, find, view, or update Jira tickets with jira-cli. Use for requests such as "show my open bugs" or "更新这个 ticket".
 ---
 
 # Jira Ticket Manager

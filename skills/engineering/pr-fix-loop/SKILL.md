@@ -1,6 +1,6 @@
 ---
 name: pr-fix-loop
-description: Fix outstanding CI failures and review findings on a GitHub PR, push changes, and re-scan until no actionable work remains. Use for "address PR feedback", "loop until CI is green", "final fix pass", or "修到没有新 finding 为止", including already-green PRs.
+description: Fix CI and review findings on a GitHub PR through push and re-scan. Use for "address PR feedback", "final fix pass", or "修到没有新 finding 为止".
 ---
 
 # PR Fix Loop

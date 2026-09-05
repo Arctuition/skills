@@ -1,6 +1,6 @@
 ---
 name: last30days
-description: Research recent community discussion and sentiment about a topic, usually over the last 30 days. Use for "what are people saying lately", "recent buzz", "最近大家在聊什么", or tool comparisons where current practitioner experience is the focus.
+description: Research recent community discussion and sentiment. Use for "recent buzz", "最近大家在聊什么", or comparisons focused on current practitioner experience.
 ---
 
 # last30days

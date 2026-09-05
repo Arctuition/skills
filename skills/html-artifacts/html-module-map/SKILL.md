@@ -1,6 +1,6 @@
 ---
 name: html-module-map
-description: Create a self-contained HTML module or workflow map with diagrams and an execution walkthrough. Use for an HTML architecture explainer or visual onboarding handoff; ordinary "explain this function" requests can be answered in chat.
+description: Create HTML module or workflow maps for visual architecture and onboarding handoffs. Ordinary code explanations do not require this skill.
 ---
 
 # HTML Module Map
@@ -36,5 +36,5 @@ Assemble one self-contained HTML file. Render it in an available browser and ins
 Default filename: `<SUBJECT>-breakdown.html`.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Opening a browser for local verification is part of building the artifact; opening the final file for the user or sharing it externally requires a request or existing authorization.
 <!-- shared:save-conventions-end -->

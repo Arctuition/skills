@@ -1,11 +1,11 @@
 ---
 name: html-artifact
-description: Create a self-contained HTML report, explainer, comparison, or interactive handoff using the team's visual style. Use when the user requests HTML or a shareable visual document; ordinary chat answers, Markdown summaries, and application UI work do not require this skill.
+description: Create self-contained HTML reports, explainers, or comparisons when a shareable visual document is requested. Excludes application UI work and ordinary chat or Markdown answers.
 ---
 
 # HTML Artifact
 
-Create a portable visual document shaped by its audience and purpose. Use the specialized HTML skills for a PR review companion, PR writeup, module map, or conversation recap when that is the requested deliverable.
+Create a portable visual document shaped by its audience and purpose. Prefer an available specialized HTML skill for a PR review companion, PR writeup, module map, or conversation recap; this skill can handle those documents when installed alone.
 
 Choose the smallest structure that explains the material. Use diagrams, comparisons, or interaction where they improve understanding; sections and component counts are not prescribed. Preserve the distinction between sourced facts, estimates, and proposals.
 
@@ -22,5 +22,5 @@ Assemble one self-contained HTML file. Render it in an available browser and ins
 Choose a descriptive `<SUBJECT>.html` filename.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Opening a browser for local verification is part of building the artifact; opening the final file for the user or sharing it externally requires a request or existing authorization.
 <!-- shared:save-conventions-end -->

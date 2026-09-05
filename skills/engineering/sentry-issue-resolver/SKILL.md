@@ -1,6 +1,6 @@
 ---
 name: sentry-issue-resolver
-description: Investigate or fix a Sentry issue using its URL or issue ID, event details, and the affected source code. Use for Sentry error analysis, root-cause diagnosis, and requested fixes.
+description: Diagnose or fix Sentry errors from an issue URL or ID, live events, and affected source code.
 ---
 
 # Sentry Issue Resolver

@@ -1,6 +1,6 @@
 ---
 name: stack-pr
-description: Split committed changes on a branch into dependency-ordered GitHub PRs, with a concrete plan before publication. Use for "stack this PR", "split this branch into PRs", "拆 PR", or a request to make a large branch reviewable.
+description: Split a branch's committed changes into dependency-ordered GitHub PRs. Use for "stack this PR", "split this branch into PRs", or "拆 PR".
 ---
 
 # Stack PR

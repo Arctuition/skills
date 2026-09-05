@@ -1,6 +1,6 @@
 ---
 name: signoff
-description: Commit the work just completed, push it, create or update its GitHub PR, and open the PR in the default browser. Use for "signoff", "ship it", "commit and PR", or "open a PR for this".
+description: Commit completed work, push, and create or update its GitHub PR. Use for "signoff", "ship it", "commit and PR", or "open a PR for this".
 ---
 
 # Signoff

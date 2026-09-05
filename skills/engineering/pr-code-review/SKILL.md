@@ -1,6 +1,6 @@
 ---
 name: pr-code-review
-description: Review a GitHub PR for actionable defects and provide severity-ranked findings with code locations. Use for "review PR", "检查这个 PR", inline review drafts, and follow-up review discussions; publish only when requested or already authorized.
+description: Review GitHub PRs for actionable defects. Use for "review PR", "检查这个 PR", inline review drafts, or follow-up review discussions.
 ---
 
 # PR Code Review

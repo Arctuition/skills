@@ -1,6 +1,6 @@
 ---
 name: html-pr-review
-description: Create a self-contained HTML companion for reviewing a GitHub PR, with a risk map and annotated changes. Use when a reviewer requests an HTML or visual review handoff; a plain "review PR" request does not require an HTML artifact.
+description: Create an HTML PR review companion with risk mapping and annotated changes when a visual handoff is requested. A plain "review PR" request does not require this skill.
 ---
 
 # HTML PR Review Companion
@@ -36,5 +36,5 @@ Assemble one self-contained HTML file. Render it in an available browser and ins
 Default filename: `pr-<NUMBER>-review.html`.
 
 <!-- shared:save-conventions-start -->
-Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Open or share the artifact only when requested.
+Save in `~/artifacts/` unless the user specified another path. Return a file link supported by the current environment, not the HTML source. Opening a browser for local verification is part of building the artifact; opening the final file for the user or sharing it externally requires a request or existing authorization.
 <!-- shared:save-conventions-end -->
