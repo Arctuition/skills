@@ -23,6 +23,8 @@ Read applicable `AGENTS.md`, contribution guidance, and relevant lint/type/forma
 
 Read the relevant implementation and callers beyond the changed lines. Prioritize the concrete risks of the change: behavior, compatibility, authorization, data integrity, failure handling, concurrency, and performance where it matters.
 
+Read [compatibility.md](references/compatibility.md) when the PR changes API responses, request or schema fields, serializers, templates, tenant-gated behavior, dependencies, or app-facing contracts, deletes code in bulk, or when the user asks to review only for regressions.
+
 Also check these design and test concerns:
 
 - **Over-defensive code:** Trace input boundaries and enforced invariants before questioning repeated validation, silent defaults, broad exception handling, or compatibility branches. Flag branches for unsupported cases, duplicate validation without a boundary to justify it, and fallbacks that hide contract violations or errors. Keep defenses justified by actual untrusted inputs, supported legacy data, or recoverable failures; type annotations alone do not establish a runtime guarantee.
