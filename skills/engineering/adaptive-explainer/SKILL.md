@@ -1,6 +1,6 @@
 ---
 name: adaptive-explainer
-description: Explain a mechanism, design, or tradeoff in the clearest sufficient form, from prose and comparison tables to diagrams, runnable examples, or a self-contained HTML explainer. Use for "讲清楚原理", "帮我理解", "explain how X works", or "how should I show this", when the user wants understanding rather than a fix, a review, a translation, or a quick lookup.
+description: Explain a mechanism, design, or tradeoff in the clearest sufficient form, from prose and comparison tables to diagrams, runnable examples, a self-contained HTML explainer, or a short rendered video. Use for "讲清楚原理", "帮我理解", "explain how X works", or "how should I show this", when the user wants understanding rather than a fix, a review, a translation, or a quick lookup.
 ---
 
 # Adaptive Explainer
@@ -22,6 +22,7 @@ Do not ask which format to use; choosing it is the task. Ask only when a missing
 | See structure, flow, ordering, or state | One focused diagram or event trace plus the takeaway | A static snapshot cannot show the important change |
 | Understand execution, reproduce a bug, test a claim | Minimal runnable example with actual output | Varying parameters interactively teaches more than fixed runs |
 | Explore "what happens when X changes" | Two or three worked scenarios | Several meaningful inputs or repeated comparisons make static examples cumbersome |
+| Watch continuous motion or spatial transformation | Annotated frames or a stepper in an HTML page | Motion itself carries the information, or the user asked for a video |
 
 Before escalating past prose or a table, name the concrete benefit: the user needs to see or change ___, and a simpler form makes ___ hard to inspect. Choose one primary form; add a secondary form only for a distinct job, such as a one-line conclusion over a diagram. A format the user explicitly requested skips this test but still has to be feasible and accurately labeled.
 
@@ -35,7 +36,11 @@ Runnable example: keep it minimal, run it in the session, and show actual versus
 
 ## HTML explainer
 
-Escalate to a page when the routing test calls for interaction, a staged walkthrough, or a diagram that chat cannot render, or when the user asked for HTML. Read [html-explainer.md](references/html-explainer.md) and build it there; a static page is sufficient when nothing needs to change. Animation and video are out of scope; use a stepper inside the page when staged change matters.
+Escalate to a page when the routing test calls for interaction, a staged walkthrough, or a diagram that chat cannot render, or when the user asked for HTML. Read [html-explainer.md](references/html-explainer.md) and build it there; a static page is sufficient when nothing needs to change. Use a stepper inside the page when staged change matters.
+
+## Explainer video
+
+Only when the stepper falls short or the user asked for a video. Read [explainer-video.md](references/explainer-video.md): it checks the local toolchain, storyboards first, renders frames with headless Chrome or manim, and assembles with ffmpeg. Nothing is installed without asking, and a storyboard is never presented as a video.
 
 ## Check before delivery
 
@@ -57,3 +62,4 @@ Give the answer or takeaway first, then the explanation and any artifact link, t
 - "给我一个能跑的例子看闭包捕获。" → a minimal executed example with its output, not a project.
 - "让我调整 TTL 和请求间隔，观察命中率。" → an HTML explainer with those two controls; state the cache policy and that results are simulated.
 - "用 HTML 解释什么是 TTL。" → honor HTML with a small static page; no sliders without explanatory value.
+- "做个一分钟的视频讲 TCP 慢启动。" → check ffmpeg and a frame renderer, write the storyboard, render, verify a frame per scene; if a tool is missing, deliver the storyboard and an HTML stepper and say so.
