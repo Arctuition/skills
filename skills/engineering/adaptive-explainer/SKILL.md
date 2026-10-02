@@ -9,7 +9,7 @@ Deliver the explanation, not a menu of formats. Pick the least complex form that
 
 ## Identify the obstacle
 
-From the request and conversation, settle what the user should be able to do afterward (explain, predict, compare, debug, decide) and what blocks them: a missing definition, a hidden relationship, execution order, competing tradeoffs, parameter sensitivity, or change over time. Take language and depth from how the user writes.
+From the request and conversation, settle what the user should be able to do afterward (explain, predict, compare, debug, decide) and what blocks them: a missing definition, a hidden relationship, execution order, competing tradeoffs, parameter sensitivity, or change over time. Match the user's language; take depth from their stated goal and demonstrated knowledge. Check a suspected false premise before building an explanation around it.
 
 Do not ask which format to use; choosing it is the task. Ask only when a missing fact would change the explanation's correctness or scope and cannot be recovered from sources.
 
@@ -40,11 +40,11 @@ Escalate to a page when the routing test calls for interaction, a staged walkthr
 
 ## Explainer video
 
-Only when the stepper falls short or the user asked for a video. Read [explainer-video.md](references/explainer-video.md): it checks the local toolchain, storyboards first, renders frames with headless Chrome or manim, and assembles with ffmpeg. Nothing is installed without asking, and a storyboard is never presented as a video.
+Only when the stepper falls short or the user asked for a video. Read [explainer-video.md](references/explainer-video.md) for toolchain checks, timing, rendering, optional narration, and verification of the encoded file. Preserve the user's format, voice, and service choices and existing authorization. A storyboard is never presented as a video.
 
 ## Check before delivery
 
-- **Coverage:** the result answers the actual question at the requested depth.
+- **Coverage:** the result answers the actual question at the requested depth and resolves the identified obstacle. For a mechanism, check that the explanation connects the cause to the outcome; choosing a suitable format is not enough.
 - **Grounding:** consequential claims trace to inspected sources or explicit derivations. Separate observed behavior, inference, and assumption; label synthetic data and toy models inside the artifact. A simulation passing its own checks does not verify the real system.
 - **Boundary case:** for a nontrivial mechanism or decision, check one failure or edge case and show it only when it changes understanding.
 - **Economy:** remove elements that do not teach something distinct; do not repeat the full explanation across prose, diagram, and page.
@@ -59,7 +59,11 @@ Give the answer or takeaway first, then the explanation and any artifact link, t
 
 - "TTL 是什么？两句话。" → two sentences; nothing else.
 - "响应丢失后为什么重试会重复扣款？" → a sequence trace grounded in the stated scenario, with server state and client knowledge visibly different.
+- "超时不就说明服务端没执行吗？" → correct that premise first: a request that never arrived and a completed operation whose response was lost can both look like a timeout to the client.
+- After a retry explanation, "还是没懂，为什么会扣两次？" → expose the missing link with a concrete balance trace: without deduplication, the retry can execute a second charge. Connect that second execution to the changed balance; do not just lengthen the first explanation.
 - "给我一个能跑的例子看闭包捕获。" → a minimal executed example with its output, not a project.
 - "让我调整 TTL 和请求间隔，观察命中率。" → an HTML explainer with those two controls; state the cache policy and that results are simulated.
 - "用 HTML 解释什么是 TTL。" → honor HTML with a small static page; no sliders without explanatory value.
-- "做个一分钟的视频讲 TCP 慢启动。" → check ffmpeg and a frame renderer, write the storyboard, render, verify a frame per scene; if a tool is missing, deliver the storyboard and an HTML stepper and say so.
+- "做个一分钟的视频讲 TCP 慢启动。" → check the toolchain, storyboard to the requested duration, render, and verify the encoded scenes and timing; if narrated, measure a short speech sample and check the audio too. If rendering is unavailable, label the storyboard and HTML stepper as substitutes.
+- "用刚才选好的声音和已授权的云服务做视频。" → reuse that voice and authorization; sample it for quality without requiring another voice-selection round.
+- "做一个只有字幕、没有旁白的视频。" → budget caption reading time and render without audio; skip TTS, transcription, and audio-level checks.
