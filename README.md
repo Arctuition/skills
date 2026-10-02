@@ -10,6 +10,7 @@ Prerequisites depend on the workflow: authenticated `gh` for GitHub, configured 
 
 ## Engineering
 
+- [adaptive-explainer](skills/engineering/adaptive-explainer/SKILL.md) — Pick the clearest sufficient explanation form, from prose and tables to a self-contained HTML explainer or a short rendered video.
 - [jira-ticket-manager](skills/engineering/jira-ticket-manager/SKILL.md) — Create, search, view, and update tickets with ArcSite component and Backlog defaults.
 - [last30days](skills/engineering/last30days/SKILL.md) — Synthesize recent community discussion with dated sources and explicit coverage limits.
 - [pr-code-review](skills/engineering/pr-code-review/SKILL.md) — Review PR correctness, excessive defenses and abstractions, abstraction leaks, project conventions, and test value; present findings locally and publish when authorized.
