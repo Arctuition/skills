@@ -14,7 +14,7 @@ ls "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
 - Frames: use installed `manim` for math or algorithm animation, or one HTML scene file with headless Chrome. The bundled HTML renderer needs Node 22.4+ and no npm packages; see [the renderer contract and commands](video-renderer.md). For other platforms, locate the installed browser rather than assuming the macOS path.
-- Narration is optional. Honor the user's choice of captions only, local speech, an authorized cloud TTS, or a supplied recording. For macOS speech, check `command -v say` and list installed voices with `say -v '?'`. A missing optional tool does not block another usable path.
+- Video is captions only unless the user asks for narration. Narration uses an authorized cloud TTS or a supplied recording, never system TTS such as macOS `say`.
 - Assembly and inspection: `ffmpeg` and `ffprobe`. If rendering cannot be completed, explain the missing prerequisite and deliver the storyboard plus an HTML stepper as substitutes.
 
 Carry forward existing authorization for installations and cloud processing. Ask only when a necessary action exceeds that scope; do not ask again for an already selected service or voice. Authorization for TTS does not automatically authorize sending the audio to a separate transcription service.
@@ -44,7 +44,7 @@ For example, explain a duplicate charge by keeping the same account visible: bal
 
 Skip this section for captions-only video. With a supplied recording, inspect the audio and align its cues directly; skip voice selection, synthesis, and provider setup.
 
-- Reuse the selected engine and voice. Otherwise choose a suitable available voice within existing authorization; offer alternatives only when the user requests them or the sample exposes a material problem. A quality sample does not require a user selection round.
+- Reuse the selected engine and voice. Otherwise choose a suitable voice from the authorized cloud service; offer alternatives only when the user requests them or the sample exposes a material problem. A quality sample does not require a user selection round.
 - For a cloud engine, check authentication without revealing credentials and inspect current provider documentation or response metadata for supported controls, audio encoding, and sample rate. Keep credentials in a request header, read from `$ENV_VARS` or a protected file; reject an empty or malformed value without printing or silently rewriting it.
 - Inspect the sample's pronunciation, pace, and beginning and end before batch synthesis. If a click, burst, or truncation is detected, inspect its waveform or short-window envelope to locate the defect. Trim or fade only confirmed artifacts, preserve speech onset and decay, and recheck the result; do not apply fixed cuts from another voice or model.
 
