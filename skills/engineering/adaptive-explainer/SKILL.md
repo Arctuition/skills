@@ -9,7 +9,7 @@ Deliver the explanation, not a menu of formats. Pick the least complex form that
 
 ## Identify the obstacle
 
-From the request and conversation, settle what the user should be able to do afterward (explain, predict, compare, debug, decide) and what blocks them: a missing definition, a hidden relationship, execution order, competing tradeoffs, parameter sensitivity, or change over time. Match the user's language; take depth from their stated goal and demonstrated knowledge. Check a suspected false premise before building an explanation around it.
+From the request and conversation, settle what the user should be able to do afterward (explain, predict, compare, debug, decide) and what blocks them: a missing definition, a hidden relationship, execution order, competing tradeoffs, parameter sensitivity, or change over time. Match the user's language, but keep key technical terms in English in every form: "这个 retry 没带 idempotency key", not "这个重试没带幂等键". Translate the sentence around a term, not the term the reader will meet in code, logs, and docs; product labels still match the real UI. Take depth from the user's stated goal and demonstrated knowledge. Check a suspected false premise before building an explanation around it.
 
 Do not ask which format to use; choosing it is the task. Ask only when a missing fact would change the explanation's correctness or scope and cannot be recovered from sources.
 

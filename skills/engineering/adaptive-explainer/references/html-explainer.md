@@ -14,7 +14,7 @@ Build one self-contained page whose every element teaches something the chat ans
 ## Build
 
 - Single `.html` file with inline CSS, JS, and SVG. The page must read correctly offline with no network dependencies.
-- Write in the user's language. When Chinese and Latin text mix, pair fonts within one family, sans with sans or serif with serif, and declare explicit fallbacks.
+- Write in the user's language, keeping key technical terms in English in prose, labels, legends, and controls alike. When Chinese and Latin text mix, pair fonts within one family, sans with sans or serif with serif, and declare explicit fallbacks.
 - Restrained palette: one background, one ink, and at most two semantic accents such as hit and miss or before and after. Idle elements stay flat.
 - Plain, measured wording and plain titles; no slang or decorative headings.
 - Links are in-document anchors or public URLs only. Never link to local paths or `file://`; they break for anyone else who opens the page.

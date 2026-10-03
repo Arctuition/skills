@@ -25,7 +25,8 @@ Set the target length before drawing anything. For synthesized narration, use a 
 
 - A cue pairs a spoken clause or caption with the visual change it explains. Reuse cue identifiers across variants where the meaning stays the same; adapt the cues when a different audience needs a different explanation.
 - Keep narration, subtitles, and diagram labels distinct: narration explains the connection, subtitles faithfully represent speech, and labels identify objects, values, and states. Avoid duplicating full sentences in the diagram. A visual cue need not be a separate TTS clip; synthesize complete sentences or connected passages when that preserves natural phrasing, then align their internal cues.
-- Write speech so its meaning does not depend on visible punctuation or symbols. Check ambiguous terms and product names in the sample; captions can retain their exact spelling.
+- In a non-English video, keep key technical terms in English across narration, captions, and labels alike.
+- Write speech so its meaning does not depend on visible punctuation or symbols. Check ambiguous terms, English terms, and product names in the sample. If the voice mangles an English term, choose a voice that handles mixed-language text or respell the term for speech only; do not translate it. Captions keep the exact spelling.
 - Write in the audience's vocabulary. For users, take terms and button names from their docs and UI and speak to "you"; drop internal identifiers. A new audience is a rewrite, not a translation.
 - Check every product label drawn on screen against the source or the running UI. An invented button name means a re-render. Label example data on screen.
 
