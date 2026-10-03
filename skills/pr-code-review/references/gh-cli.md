@@ -27,36 +27,52 @@ For a quick CI view, use `gh pr checks "<PR>" --repo "<OWNER/REPO>"`; it follows
 
 ## Existing discussion
 
-Read complete review and comment bodies, with pagination:
+Read complete review bodies and PR issue comments, with pagination:
 
 ```bash
 gh api --paginate "repos/<OWNER/REPO>/pulls/<PR>/reviews"
-gh api --paginate "repos/<OWNER/REPO>/pulls/<PR>/comments"
 gh api --paginate "repos/<OWNER/REPO>/issues/<PR>/comments"
 ```
 
-Fetch thread state separately; flat REST comments do not include resolution state:
+Read inline threads through GraphQL; flat REST review comments do not include resolution state. This query returns each thread's state with its replies:
 
 ```bash
-gh api graphql --paginate \
-  -f owner="<OWNER>" -f name="<REPO>" -F number="<PR>" \
-  -f query='
-query($owner: String!, $name: String!, $number: Int!, $endCursor: String) {
-  repository(owner: $owner, name: $name) {
-    pullRequest(number: $number) {
-      reviewThreads(first: 100, after: $endCursor) {
-        nodes {
-          id isResolved isOutdated path line
-          comments(first: 1) { nodes { id } }
-        }
+gh api graphql --paginate -f owner="<OWNER>" -f name="<REPO>" -F number=<PR> -f query='
+query($owner:String!, $name:String!, $number:Int!, $endCursor:String) {
+  repository(owner:$owner, name:$name) {
+    pullRequest(number:$number) {
+      reviewThreads(first:100, after:$endCursor) {
         pageInfo { hasNextPage endCursor }
+        nodes {
+          id isResolved isOutdated path line originalLine
+          comments(first:100) {
+            pageInfo { hasNextPage endCursor }
+            nodes { databaseId author { login } body createdAt updatedAt }
+          }
+        }
       }
     }
   }
 }'
 ```
 
-Match each thread's first comment `id` to the REST comment's `node_id`, then follow `in_reply_to_id` to read all replies from the paginated REST list. `comments(first: 1)` identifies the thread root; it is not the full conversation. Refresh both thread state and comments before posting. Treat resolved/outdated flags as discussion context, and verify fixes against current code.
+`--paginate` follows the first `pageInfo` in the response, so keep the thread `pageInfo` ahead of `nodes`. Nested comment connections paginate separately. For any thread with `comments.pageInfo.hasNextPage`, retrieve the remaining replies, starting from its returned cursor:
+
+```bash
+gh api graphql --paginate -F id="<THREAD_NODE_ID>" -F endCursor="<COMMENTS_CURSOR>" -f query='
+query($id:ID!, $endCursor:String) {
+  node(id:$id) {
+    ... on PullRequestReviewThread {
+      comments(first:100, after:$endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes { databaseId author { login } body createdAt updatedAt }
+      }
+    }
+  }
+}'
+```
+
+A comment's `databaseId` is the `<COMMENT_ID>` used by the REST reply and edit endpoints below. Refresh thread state and replies before posting. Treat resolved/outdated flags as discussion context, and verify fixes against current code.
 
 ## Batched review
 
