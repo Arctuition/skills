@@ -13,7 +13,7 @@ command -v ffmpeg ffprobe node
 ls "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ```
 
-- Frames: use installed `manim` for math or algorithm animation, or one HTML scene file with headless Chrome. For other platforms, locate the installed browser rather than assuming the macOS path.
+- Frames: use installed `manim` for math or algorithm animation, or one HTML scene file with headless Chrome. The bundled HTML renderer needs Node 22.4+ and no npm packages; see [the renderer contract and commands](video-renderer.md). For other platforms, locate the installed browser rather than assuming the macOS path.
 - Narration is optional. Honor the user's choice of captions only, local speech, an authorized cloud TTS, or a supplied recording. For macOS speech, check `command -v say` and list installed voices with `say -v '?'`. A missing optional tool does not block another usable path.
 - Assembly and inspection: `ffmpeg` and `ffprobe`. If rendering cannot be completed, explain the missing prerequisite and deliver the storyboard plus an HTML stepper as substitutes.
 
@@ -24,13 +24,21 @@ Carry forward existing authorization for installations and cloud processing. Ask
 Set the target length before drawing anything. For synthesized narration, use a short representative sample from the selected voice to estimate the draft's duration; for a supplied recording, measure its duration directly. Reserve time for pauses and inspecting the visuals. Use measured clip durations for the final timeline; character or word counts are drafting estimates, not timing guarantees. For captions only, budget reading and visual inspection time without a speech pipeline.
 
 - A cue pairs a spoken clause or caption with the visual change it explains. Reuse cue identifiers across variants where the meaning stays the same; adapt the cues when a different audience needs a different explanation.
+- Keep narration, subtitles, and diagram labels distinct: narration explains the connection, subtitles faithfully represent speech, and labels identify objects, values, and states. Avoid duplicating full sentences in the diagram. A visual cue need not be a separate TTS clip; synthesize complete sentences or connected passages when that preserves natural phrasing, then align their internal cues.
 - Write speech so its meaning does not depend on visible punctuation or symbols. Check ambiguous terms and product names in the sample; captions can retain their exact spelling.
 - Write in the audience's vocabulary. For users, take terms and button names from their docs and UI and speak to "you"; drop internal identifiers. A new audience is a rewrite, not a translation.
 - Check every product label drawn on screen against the source or the running UI. An invented button name means a re-render. Label example data on screen.
 
 ## Storyboard before rendering
 
-Write a storyboard table first: scene number, what is on screen, the caption or narration per cue, and seconds. Use one idea per scene and fit the requested duration; when none is given, aim for a short explanation, usually 20 to 90 seconds. Narrow the content before exceeding a requested limit. Get the mechanism right here; rendering is the slow, expensive step. Label synthetic data and toy parameters on screen.
+Write a storyboard table first: scene ID, initial state, triggering event, resulting state and takeaway, caption or narration per cue, and seconds. Each scene should resolve one part of the explanation. Fit the requested duration; when none is given, aim for a short explanation, usually 20 to 90 seconds. Narrow the content before exceeding a requested limit. Get the mechanism right here; rendering is the slow, expensive step.
+
+For example, explain a duplicate charge by keeping the same account visible: balance 100 → the first request executes → balance 90; its response is lost → the client times out while the balance stays 90; a retry executes without deduplication → balance 80. Show the event that causes each debit and keep server state distinct from client knowledge. These are illustrative values, not a production trace.
+
+- Keep persistent objects recognizable through consistent labels and stable spatial anchors; move or recolor them when it communicates an event or focus change. Leave a readable hold after the active cause and its result.
+- Use continuous motion for continuous change or movement. Update discrete state at the actual modeled event; do not tween a balance or counter through invented intermediate states.
+- Keep diagram labels and subtitles legible at the expected playback size, with separate space for each. Inspect the densest frame at that size.
+- Label synthetic data and toy parameters on screen. Distinguish playback time from modeled time when waits are compressed or events slowed down; apparent animation speed must not imply measured latency or throughput.
 
 ## Narration
 
@@ -42,40 +50,11 @@ Skip this section for captions-only video. With a supplied recording, inspect th
 
 ## Render
 
-For the HTML path, make one file render any moment with `renderAt(t)`: deterministic, with no CSS animations or timers. Bind visual changes to cue identifiers and offsets. Build the timeline from measured narration durations or the caption-only storyboard, so editing a cue re-times the visuals. Add a `?scene=N` end-state preview and screenshot every scene before the full render.
+For the HTML path, use [scripts/render-video.mjs](../scripts/render-video.mjs) with the [renderer contract and commands](video-renderer.md). Make one scene file render any moment with `renderAt(t)`: deterministic even when seeking backward, with no CSS animations or timers driving the timeline. Derive scene boundaries, captions, and visual changes from the same cue data, using measured narration durations or the caption-only storyboard. The renderer handles browser startup, readiness, frame capture, encoding, and basic file checks.
 
-Drive one headless Chrome session instead of launching Chrome once per frame. Use an available browser library or the DevTools protocol. For direct protocol access, the following is a sketch, not a complete runnable script: implement `send` with request IDs and error handling, wait for the connection and scene assets/fonts to be ready, and define `FPS` and the frame loop.
+With narration, prepare one mixed audio file starting at timeline zero. Place clips by their cue offsets (for example with `adelay` and `amix=normalize=0`), then level the mix; `loudnorm=I=-16:TP=-1.5` is a useful starting point for speech. Cache clips by engine/model, voice, text, and synthesis settings. Extend the final visual hold when needed to preserve the end of speech. The renderer pads short audio with silence and rejects audio that overruns the full visual timeline.
 
-```js
-// "$CHROME" --headless=new --hide-scrollbars --remote-debugging-port=9333 --user-data-dir=<PROFILE_DIR> about:blank
-const page = (await (await fetch('http://127.0.0.1:9333/json/list')).json()).find(t => t.type === 'page');
-const ws = new WebSocket(page.webSocketDebuggerUrl);  // send({id, method, params}), resolve on the matching id
-await send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-await send('Page.navigate', { url: 'file://<SCENE_DIR>/scene.html' });
-// per frame k:
-const sig = (await send('Runtime.evaluate', { expression: `renderAt(${k / FPS})`, returnByValue: true })).result.value;
-const { data } = await send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: 1920, height: 1080, scale: 1 } });
-```
-
-For long static holds, `renderAt` can return a signature covering all rendered state. Reuse the previous PNG only when that signature is unchanged and all assets are loaded.
-
-With narration, place cue clips on the timeline (for example with `adelay` and `amix=normalize=0`), then level the mix; `loudnorm=I=-16:TP=-1.5` is a useful starting point for speech. Cache clips by engine/model, voice, text, and synthesis settings, and allow rendering a single scene for trials. Pad the audio or final visual hold to the planned end so neither cuts off the other.
-
-Example assembly with narration:
-
-```bash
-ffmpeg -y -framerate 25 -i frames/%05d.png -i narration.m4a \
-  -c:v libx264 -crf 20 -pix_fmt yuv420p -c:a copy -movflags +faststart out.mp4
-```
-
-`yuv420p` keeps the file playable in QuickTime and browsers.
-
-For captions only, omit audio inputs and filters:
-
-```bash
-ffmpeg -y -framerate 25 -i frames/%05d.png \
-  -c:v libx264 -crf 20 -pix_fmt yuv420p -an -movflags +faststart out.mp4
-```
+Before the full render, encode a representative scene with its actual motion, captions, and audio if used. Use `--scene <SCENE_ID>` for the HTML renderer or the equivalent in the chosen toolchain. Choose a scene with the hardest state change or densest information, often 5–10 seconds. Inspect it at the expected playback size and use available playback/listening tools to check pacing, pronunciation, and synchronization. Fix the sample before rendering the full timeline; this is an agent check, not a new user approval gate. A one-scene video can use that same render as the final file after inspection. Still inspect every scene in the final file. A captions-only sample cannot validate a narrated video's rhythm; report unavailable listening checks.
 
 ## Verify
 
@@ -88,6 +67,7 @@ ffmpeg -y -i s1.png -i s2.png -i s3.png -i s4.png -filter_complex "xstack=inputs
 ```
 
 - Frames: the end state of every scene in a contact sheet, plus mid-motion frames where something moves. Captions fit, nothing overlaps, and product labels match the real UI.
+- Explanation: compare key encoded frames before and after a triggering event with the storyboard and source evidence or independent calculation. The cause must be visible, state must change at the right event, and the result must stay readable. A successful encode does not validate the mechanism.
 - Playback and duration: decode/play through the result using available tools, confirm the requested duration, and check the opening and final hold. For captions only, confirm there is no audio stream and skip the checks below.
 
 With narration:
@@ -103,4 +83,4 @@ Report only checks actually performed.
 
 ## Deliver
 
-Save `<SUBJECT>.mp4` under `~/artifacts/` unless the user specified another path, with the storyboard beside it and each scene's start time so a reader can skim without playing. Keep the scene file, storyboard data, and render script there too. Link the video and briefly state its duration, narration engine/voice if used, checks performed, and material limitations. Keep routine speech edits in the script rather than listing them in the handoff. If rendering failed, say what is missing and label the storyboard and HTML stepper as substitutes.
+Save `<SUBJECT>.mp4` under `~/artifacts/` unless the user specified another path, with the storyboard beside it and each scene's start time so a reader can skim without playing. Keep the scene file, cue data, any audio/assets, a copy of the render script, and the exact render command there so the video can be reproduced. Link the video and briefly state its duration, narration engine/voice if used, checks performed, and material limitations. Keep routine speech edits in the script rather than listing them in the handoff. If rendering failed, say what is missing and label the storyboard and HTML stepper as substitutes.

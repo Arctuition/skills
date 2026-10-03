@@ -40,7 +40,7 @@ Escalate to a page when the routing test calls for interaction, a staged walkthr
 
 ## Explainer video
 
-Only when the stepper falls short or the user asked for a video. Read [explainer-video.md](references/explainer-video.md) for toolchain checks, timing, rendering, optional narration, and verification of the encoded file. Preserve the user's format, voice, and service choices and existing authorization. A storyboard is never presented as a video.
+Only when the stepper falls short or the user asked for a video. Read [explainer-video.md](references/explainer-video.md) for causal storyboarding, timing, optional narration, the reusable HTML renderer, and verification of the encoded file. Render and inspect a representative scene with its actual captions, motion, and audio if used before the full video. Preserve the user's format, voice, and service choices and existing authorization. A storyboard is never presented as a video.
 
 ## Check before delivery
 
@@ -64,6 +64,6 @@ Give the answer or takeaway first, then the explanation and any artifact link, t
 - "给我一个能跑的例子看闭包捕获。" → a minimal executed example with its output, not a project.
 - "让我调整 TTL 和请求间隔，观察命中率。" → an HTML explainer with those two controls; state the cache policy and that results are simulated.
 - "用 HTML 解释什么是 TTL。" → honor HTML with a small static page; no sliders without explanatory value.
-- "做个一分钟的视频讲 TCP 慢启动。" → check the toolchain, storyboard to the requested duration, render, and verify the encoded scenes and timing; if narrated, measure a short speech sample and check the audio too. If rendering is unavailable, label the storyboard and HTML stepper as substitutes.
+- "做个一分钟的视频讲 TCP 慢启动。" → check the toolchain, storyboard the events that change the congestion window, and fit the requested duration. Inspect a representative encoded scene before the full render, then verify the mechanism and timing in the final video; if narrated, measure a short speech sample and check the audio too. If rendering is unavailable, label the storyboard and HTML stepper as substitutes.
 - "用刚才选好的声音和已授权的云服务做视频。" → reuse that voice and authorization; sample it for quality without requiring another voice-selection round.
 - "做一个只有字幕、没有旁白的视频。" → budget caption reading time and render without audio; skip TTS, transcription, and audio-level checks.
