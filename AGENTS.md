@@ -1,16 +1,9 @@
 # Skill authoring
 
-Skills are organized into bucket folders under `skills/`:
-
-- `engineering/` — operates on code and tickets.
-- `html-artifacts/` — produces a single self-contained HTML file for handoff.
-
-Add a new bucket only when at least two skills genuinely share it.
-
 ## Layout and discovery
 
 ```text
-skills/<bucket>/<skill-name>/
+skills/<skill-name>/
 ├── SKILL.md
 └── references/        # optional, linked from the workflow
 ```
@@ -42,23 +35,3 @@ The user's instructions take precedence over skill guidelines. Treat actionable 
 - Prefer explicit, copy-pasteable commands over clever one-liners.
 - Keep each installed skill self-contained; repository-relative links to sibling skills are not a runtime dependency.
 
-## Shared HTML content
-
-Maintain the common visual vocabulary and delivery rules in `skills/html-artifacts/_shared/`, even when a component currently serves only one skill.
-
-```text
-_shared/
-├── design-tokens.md       # base style and component routing
-├── components/*.md        # component groups read on demand
-├── html-workflow.md       # shared build/verification block
-└── save-conventions.md    # shared delivery block
-```
-
-`scripts/sync-shared.sh` propagates sources in two modes:
-
-1. **File-level:** `_shared/design-tokens.md` and `_shared/components/*.md` copy into each HTML skill's `references/`, preserving the `components/` subdirectory.
-2. **Block-level:** other `_shared/*.md` files replace regions between `<!-- shared:<name>-start -->` and `<!-- shared:<name>-end -->` in opted-in `SKILL.md` files. Skills without markers are untouched; unmatched markers are errors.
-
-Edit shared sources, run `bash scripts/sync-shared.sh`, and include both sources and generated copies in the change. Do not edit generated references or shared blocks directly. Run `bash scripts/sync-shared.sh --check` before handoff; it fails on drift.
-
-No starter `template.html`: the skill describes the document's purpose and useful structure, while base tokens and selected component references supply the CSS/markup vocabulary.
