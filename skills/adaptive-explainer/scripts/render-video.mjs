@@ -232,7 +232,11 @@ async function main() {
     if (audio) args.push('-i', audio, '-map', '0:v:0', '-map', '1:a:0', '-af',
       `apad,atrim=start=${t.first / t.fps}:end=${t.end / t.fps},asetpts=PTS-STARTPTS`, '-c:a', 'aac', '-ar', '48000', '-b:a', '192k');
     else args.push('-an');
-    args.push('-c:v', 'libx264', '-crf', '20', '-pix_fmt', 'yuv420p', '-t', String(t.seconds), '-movflags', '+faststart', encoded);
+    // Convert the sRGB screenshots with the BT.709 matrix and tag the stream; untagged HD video is
+    // decoded as BT.709 by players, which shifts saturated colors when ffmpeg's BT.601 default was used.
+    args.push('-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p,' +
+      'setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709',
+    '-c:v', 'libx264', '-crf', '20', '-t', String(t.seconds), '-movflags', '+faststart', encoded);
     await run('ffmpeg', args, { signal: abort.signal });
     const info = await probe(encoded, true);
     const video = info.streams.find(stream => stream.codec_type === 'video');
@@ -240,6 +244,9 @@ async function main() {
     if (!video || Number(video.nb_read_frames) !== frames || video.width !== t.outputWidth || video.height !== t.outputHeight ||
         !Number.isFinite(Number(info.format.duration)) || Math.abs(Number(info.format.duration) - t.seconds) > 1 / t.fps + 0.025 || hasAudio !== Boolean(audio)) {
       throw new Error('Encoded output failed frame count, dimensions, duration, or audio-stream checks.');
+    }
+    if (video.color_space !== 'bt709' || video.color_primaries !== 'bt709' || video.color_transfer !== 'bt709') {
+      throw new Error('Encoded output is missing BT.709 color metadata.');
     }
     if (values.overwrite) await rename(encoded, output);
     else await copyFile(encoded, output, constants.COPYFILE_EXCL);

@@ -50,4 +50,4 @@ Optional flags: `--chrome "$CHROME"` to select a browser executable, `--scale 0.
 
 Scene starts round to the nearest frame and ends round up; the output reports the actual interval. The last frame is one frame before the interval's end, so give the final state a hold rather than introducing it at `duration`.
 
-The script checks decoded frame count, output dimensions, duration, and presence or absence of audio. It does not judge explanation accuracy, readability, speech quality, or synchronization within the supplied mix; perform the checks in [explainer-video.md](explainer-video.md#verify).
+The script encodes H.264 with the BT.709 matrix and color tags, and checks decoded frame count, output dimensions, duration, color tags, and presence or absence of audio. It does not judge explanation accuracy, readability, speech quality, or synchronization within the supplied mix; perform the checks in [explainer-video.md](explainer-video.md#verify).
