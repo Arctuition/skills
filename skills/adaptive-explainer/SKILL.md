@@ -40,7 +40,7 @@ Escalate to a page when the routing test calls for interaction, a staged walkthr
 
 ## Explainer video
 
-Only when the stepper falls short or the user asked for a video. Read [explainer-video.md](references/explainer-video.md) for causal storyboarding, timing, optional narration, the reusable HTML renderer, and verification of the encoded file. Render and inspect a representative scene with its actual captions, motion, and audio if used before the full video. Preserve the user's format, voice, and service choices and existing authorization. A storyboard is never presented as a video.
+Only when the stepper falls short or the user asked for a video. First read [video-tool-selection.md](references/video-tool-selection.md) to choose the scene engine and any composition tool from the required visuals, precision, and reuse. Then follow [explainer-video.md](references/explainer-video.md) for causal storyboarding, timing, optional audio, and verification of the encoded file. Render and inspect a representative scene with its actual captions, motion, and audio if used before the full video. Preserve the user's format, tool, voice, and service choices and existing authorization. Distinguish a storyboard, an interactive preview, and an encoded video; deliver the stage the user requested.
 
 ## Check before delivery
 
