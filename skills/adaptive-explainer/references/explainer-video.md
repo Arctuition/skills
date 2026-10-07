@@ -2,20 +2,11 @@
 
 Use when motion itself carries the information (continuous change, spatial transformation, a process the reader must watch unfold) or when the user asked for a video. For staged change, a stepper inside an HTML page is the default; a video is the escalation, not the starting point.
 
-The model writes the program that renders the video; it does not emit video. Everything below depends on tools present on the machine.
+Build the video from authored scenes, generated footage, or supplied assets using an available toolchain. Choose it with [video-tool-selection.md](video-tool-selection.md); the storyboard and encoded-file checks below apply across paths. Honor a request for a storyboard or preview without expanding it into a full export.
 
 ## Check the toolchain first
 
-Check only the selected path. For an HTML renderer on macOS:
-
-```bash
-command -v ffmpeg ffprobe node
-ls "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-```
-
-- Frames: use installed `manim` for math or algorithm animation, or one HTML scene file with headless Chrome. The bundled HTML renderer needs Node 22.4+ and no npm packages; see [the renderer contract and commands](video-renderer.md). For other platforms, locate the installed browser rather than assuming the macOS path.
-- Video is captions only unless the user asks for narration. Narration uses an authorized cloud TTS or a supplied recording, never system TTS such as macOS `say`.
-- Assembly and inspection: `ffmpeg` and `ffprobe`. If rendering cannot be completed, explain the missing prerequisite and deliver the storyboard plus an HTML stepper as substitutes.
+Run the [checks for the selected path](video-tool-selection.md#check-only-the-chosen-path) before building scenes. Default to captions only when no audio was requested. Narration uses an authorized cloud TTS or a supplied recording, never system TTS such as macOS `say`; requested in-scene dialogue or sound follows the selected tool's audio workflow.
 
 Carry forward existing authorization for installations and cloud processing. Ask only when a necessary action exceeds that scope; do not ask again for an already selected service or voice. Authorization for TTS does not automatically authorize sending the audio to a separate transcription service.
 
@@ -43,7 +34,7 @@ For example, explain a duplicate charge by keeping the same account visible: bal
 
 ## Narration
 
-Skip this section for captions-only video. With a supplied recording, inspect the audio and align its cues directly; skip voice selection, synthesis, and provider setup.
+Read this section for separately recorded or synthesized narration. With a supplied recording, inspect the audio and align its cues directly; skip voice selection, synthesis, and provider setup. Requested native dialogue in generated footage follows the [selected audio workflow](video-tool-selection.md#fit-audio-to-the-visual-workflow) and the encoded-audio checks below.
 
 - Reuse the selected engine and voice. Otherwise choose a suitable voice from the authorized cloud service; offer alternatives only when the user requests them or the sample exposes a material problem. A quality sample does not require a user selection round.
 - For a cloud engine, check authentication without revealing credentials and inspect current provider documentation or response metadata for supported controls, audio encoding, and sample rate. Keep credentials in a request header, read from `$ENV_VARS` or a protected file; reject an empty or malformed value without printing or silently rewriting it.
@@ -51,9 +42,11 @@ Skip this section for captions-only video. With a supplied recording, inspect th
 
 ## Render
 
-For the HTML path, use [scripts/render-video.mjs](../scripts/render-video.mjs) with the [renderer contract and commands](video-renderer.md). Make one scene file render any moment with `renderAt(t)`: deterministic even when seeking backward, with no CSS animations or timers driving the timeline. Derive scene boundaries, captions, and visual changes from the same cue data, using measured narration durations or the caption-only storyboard. The renderer handles browser startup, readiness, frame capture, encoding, and basic file checks.
+Derive scene boundaries, captions, and visual changes from the same cue data, using measured audio timing or the caption-only storyboard. Render scenes with the selected engine and assemble imported clips on that timeline. In a mixed workflow, recheck clip durations and cue offsets in the final composition.
 
-With narration, prepare one mixed audio file starting at timeline zero. Place clips by their cue offsets (for example with `adelay` and `amix=normalize=0`), then level the mix; `loudnorm=I=-16:TP=-1.5` is a useful starting point for speech. Leave out background music unless the user asks for it; when used, take it from a source licensed for the purpose, keep it roughly 15–20 dB under the narration, dip it slightly under speech, and fade it in and out. Cache clips by engine/model, voice, text, and synthesis settings. Extend the final visual hold when needed to preserve the end of speech. The renderer pads short audio with silence and rejects audio that overruns the full visual timeline.
+For the HTML path, use [scripts/render-video.mjs](../scripts/render-video.mjs) with the [renderer contract and commands](video-renderer.md). Make one scene file render any moment with `renderAt(t)`: deterministic even when seeking backward, with no CSS animations or timers driving the timeline. The renderer handles browser startup, readiness, frame capture, encoding, and basic file checks. For Manim or Remotion, use the engine's own scene or composition API and render commands.
+
+With narration, place clips by their cue offsets and level the mix; `loudnorm=I=-16:TP=-1.5` is a useful starting point for speech. Remotion or Manim can manage audio in their own timeline; for the bundled HTML renderer, prepare one mixed file starting at timeline zero (for example with `adelay` and `amix=normalize=0`). That renderer pads short audio with silence and rejects audio that overruns the full visual timeline. Extend the final visual hold when needed to preserve the end of speech. Leave out background music unless the user asks for it; when used, take it from a source licensed for the purpose, keep it roughly 15–20 dB under the narration, dip it slightly under speech, and fade it in and out. Cache clips by engine/model, voice, text, and synthesis settings.
 
 Before the full render, encode a representative scene with its actual motion, captions, and audio if used. Use `--scene <SCENE_ID>` for the HTML renderer or the equivalent in the chosen toolchain. Choose a scene with the hardest state change or densest information, often 5–10 seconds. Inspect it at the expected playback size and use available playback/listening tools to check pacing, pronunciation, and synchronization. Fix the sample before rendering the full timeline; this is an agent check, not a new user approval gate. A one-scene video can use that same render as the final file after inspection. Still inspect every scene in the final file. A captions-only sample cannot validate a narrated video's rhythm; report unavailable listening checks.
 
@@ -76,17 +69,17 @@ ffmpeg -y -i s1.png -i s2.png -i s3.png -i s4.png -filter_complex "xstack=inputs
 - Explanation: compare key encoded frames before and after a triggering event with the storyboard and source evidence or independent calculation. The cause must be visible, state must change at the right event, and the result must stay readable. A successful encode does not validate the mechanism.
 - Playback and duration: decode/play through the result using available tools, confirm the requested duration, and check the opening and final hold. For captions only, confirm there is no audio stream and skip the checks below.
 
-With narration:
+With audio, including requested sound in generated footage:
 
 ```bash
 ffmpeg -hide_banner -i out.mp4 -vn -af ebur128=peak=true -f null - 2>&1 | grep -E '^ +(I|Peak):'
 ```
 
-- Content: with an available, authorized transcription or audio-understanding tool, compare the spoken content with the script, normalizing punctuation and number formatting. Check flagged differences before re-synthesizing: transcription errors alone are not evidence of bad audio. A mismatch on a homophone or polyphonic character, such as 铃 transcribed as 霖, flags a possible misreading; when you cannot listen, name those words for the user to check. Correct confirmed speech errors, limit retries to three per affected clip, and report unresolved differences. If no such tool is available, state that speech content was not verified; do not require a new cloud service just for this check.
+- Speech content, when present: with an available, authorized transcription or audio-understanding tool, compare the spoken content with the script, normalizing punctuation and number formatting. Check flagged differences before re-synthesizing: transcription errors alone are not evidence of bad audio. A mismatch on a homophone or polyphonic character, such as 铃 transcribed as 霖, flags a possible misreading; when you cannot listen, name those words for the user to check. Correct confirmed speech errors, limit retries to three per affected clip, and report unresolved differences. If no such tool is available, state that speech content was not verified; do not require a new cloud service just for this check.
 - Audio and synchronization: inspect the encoded audio for clipping, abrupt cuts, clicks, or unexpected bursts, especially at cue boundaries. Use level measurements alongside available listening/audio-analysis tools: integrated loudness should land near the mix target and true peak at or below its limit, but a peak below a threshold alone does not prove clean speech. Check that each spoken cue aligns with its visual change and that the ending is complete. Report any listening or synchronization checks that were unavailable.
 
 Report only checks actually performed.
 
 ## Deliver
 
-Save `<SUBJECT>.mp4` under `~/artifacts/` unless the user specified another path, with the storyboard beside it and each scene's start time so a reader can skim without playing. Keep the scene file, cue data, any audio/assets, a copy of the render script, and the exact render command there so the video can be reproduced. Link the video and briefly state its duration, narration engine/voice if used, checks performed, and material limitations. Keep routine speech edits in the script rather than listing them in the handoff. If rendering failed, say what is missing and label the storyboard and HTML stepper as substitutes.
+For an encoded-video request, save `<SUBJECT>.mp4` under `~/artifacts/` unless the user specified another path, with the storyboard beside it and each scene's start time so a reader can skim without playing. Keep the selected engine's scene or project source, cue data, audio/assets, dependency versions, and exact render command there so the edit can be reproduced; include the bundled render script only for the HTML path. For generated footage, retain the selected clips, prompts, references, and model/settings rather than promising identical regeneration. Link the video and briefly state its duration, narration engine/voice if used, checks performed, and material limitations. Keep routine speech edits in the script rather than listing them in the handoff. If rendering failed, say what is missing and label the storyboard and HTML stepper as substitutes.
