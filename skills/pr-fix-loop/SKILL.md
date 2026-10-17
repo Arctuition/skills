@@ -32,7 +32,7 @@ After the first pass, review the delta since the last reviewed head, the origina
 
 ## Shared evidence and handoff
 
-For fixes, pending validation, or a handoff, reuse one local `review.md`; default to `/tmp/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`. Read it before investigating and update it in place across review/fix rounds. Link its absolute path in the handoff or final response. A completed review without follow-up needs only its final summary.
+For fixes, pending validation, or a handoff, reuse one local `review.md` in persistent storage outside temporary directories and worktrees; default to `$HOME/.local/state/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`. If reusing a temporary record, copy it and its repro artifacts there and update their links. Read it before investigating and update it in place across review/fix rounds. Link its absolute path in the handoff or final response. A completed review without follow-up needs only its final summary.
 
 Keep the record to:
 
