@@ -5,7 +5,7 @@ description: Review GitHub PRs for correctness, unnecessary complexity, and adhe
 
 # PR Code Review
 
-Review the change against its intended behavior, existing contracts, and project conventions. Honor a narrower user-requested scope. Default to presenting findings in the conversation. An ordinary review request does not authorize posting, approving, requesting changes, or dismissing reviews on GitHub.
+Review the change against its intended behavior, existing contracts, and project conventions. Honor a narrower user-requested scope. A request to review a specific PR authorizes publishing verified, actionable findings as a GitHub `COMMENT` review without another confirmation. Requests such as "只看不发", "先给草稿", "read-only", or "draft first" keep the findings in the conversation until the user authorizes publication.
 
 ## Establish the reviewed revision
 
@@ -93,13 +93,15 @@ After three fix/re-review rounds without convergence, reassess whether the root 
 
 ## Publish and follow up
 
-When publishing is authorized:
+For the default publishing mode, submit only new verified actionable findings after checking existing discussion. If none remain, report in the conversation without posting unless the user explicitly requests a published result.
 
 1. Refresh head/base SHAs, CI, and review threads with their replies. If either SHA changed, rebuild the snapshot and inspect the relevant changes. Revalidate findings and line mappings against current code and discussion before posting.
-2. Compare the authenticated user with the PR author. For self-authored PRs, use COMMENT and retain the verdict in the body. Otherwise choose APPROVE for a supported positive verdict, REQUEST_CHANGES for merge-blocking defects, or COMMENT for discussion/non-blocking findings. Honor any user-specified event; if GitHub disallows it, explain the limitation instead of silently substituting another event.
-3. Build a JSON payload with a file-editing tool and submit a single batched review. Use actual file line numbers and LEFT/RIGHT sides.
+2. Use `COMMENT` by default, including for merge-blocking findings; state the verdict in the body. Use `APPROVE` or `REQUEST_CHANGES` only when explicitly requested. Compare the authenticated user with the PR author; if GitHub disallows a requested event, explain the limitation instead of silently substituting another event.
+3. Build a JSON payload with a file-editing tool and submit one batched review per round. Use actual file line numbers and LEFT/RIGHT sides.
 4. Confirm the posted result. If submission is ambiguous, inspect existing reviews before retrying to avoid duplicates.
 
-For interactive review, discuss and revise drafts until the user authorizes publication. Interpret consent in context; do not require a special keyword or repeat an approval already given. After delivering a draft or posted review, yield normally; handle further concerns when they arrive.
+Return the posted review link and a concise summary in the conversation. For a requested local review or draft, return the findings without publishing; keep that mode until the user authorizes publication. Do not require a special keyword or repeat authorization already given.
+
+Resolving threads, dismissing reviews, and merging require explicit user instructions.
 
 Dismiss only the user's authorized target review, identified by ID and author; never select an arbitrary CHANGES_REQUESTED review.

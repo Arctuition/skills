@@ -13,7 +13,7 @@ Prerequisites depend on the workflow: authenticated `gh` for GitHub, configured 
 - [adaptive-explainer](skills/adaptive-explainer/SKILL.md) — Pick the clearest sufficient explanation form, from prose and tables to a self-contained HTML explainer or a short video, with tool selection matched to the visuals and reuse needs.
 - [jira-ticket-manager](skills/jira-ticket-manager/SKILL.md) — Create, search, view, and update tickets with ArcSite component and Backlog defaults.
 - [last30days](skills/last30days/SKILL.md) — Synthesize recent community discussion with dated sources and explicit coverage limits.
-- [pr-code-review](skills/pr-code-review/SKILL.md) — Review PR correctness, excessive defenses and abstractions, abstraction leaks, project conventions, and test value; present findings locally and publish when authorized.
+- [pr-code-review](skills/pr-code-review/SKILL.md) — Review PR correctness, excessive defenses and abstractions, abstraction leaks, project conventions, and test value; publish verified findings as COMMENT by default, with read-only and draft exceptions.
 - [sentry-issue-resolver](skills/sentry-issue-resolver/SKILL.md) — Diagnose from event evidence and source; implement fixes when requested.
 - [signoff](skills/signoff/SKILL.md) — Commit task-owned changes, push, create/update the PR, and open it in the default browser.
 

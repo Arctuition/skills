@@ -103,7 +103,7 @@ gh api user --jq .login
 gh pr view "<PR>" --repo "<OWNER/REPO>" --json author,headRefOid,baseRefOid
 ```
 
-For self-authored PRs, use `COMMENT` and put the positive or blocking verdict in the body. Otherwise choose `APPROVE`, `REQUEST_CHANGES`, or `COMMENT` according to the findings. Honor an explicit user-requested event; if unavailable, report the limitation instead of silently changing it.
+Use `COMMENT` by default for both self-authored and other PRs, including merge-blocking findings; state the verdict in the body. Use `APPROVE` or `REQUEST_CHANGES` only when explicitly requested. GitHub disallows those events on self-authored PRs; report an unavailable requested event instead of silently substituting it.
 
 Use a file-editing tool to write a JSON payload to a unique temporary file. Preserve literal backticks and newlines through JSON serialization, rather than shell interpolation.
 
