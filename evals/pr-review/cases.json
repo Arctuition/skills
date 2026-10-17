@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/Arctuition/cloudservice",
+  "cases": [
+    {
+      "id": "case-001",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5845",
+      "base_sha": "dbbdb961c42e672d4875a1ea294b04845dd16041",
+      "head_sha": "c47bfafb16578599f6d8abe13c36b007907e7054",
+      "focus_paths": [
+        "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "arcservice/services/knowledge_studio/layer_settings_svc.py",
+        "tests/unit/services/knowledge_studio/test_stored_content_svc.py"
+      ],
+      "request": "Review the new stored-content deployment checker for compatibility with the Console Settings read path. Report only actionable correctness findings in that scope and material validation limits."
+    },
+    {
+      "id": "case-002",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5928",
+      "base_sha": "ddefba21c18310be23c3ae8da34728c5f6a55479",
+      "head_sha": "2a40ae16e8f030cdf5e6d775ad8683cc1e1760ea",
+      "focus_paths": [
+        "arcservice/services/projects/pdf_worker.py",
+        "tests/unit/services/projects/test_pdf_worker.py"
+      ],
+      "request": "Review the optimization that flattens only PDF pages with annotations. Check preservation of supported upload/rendering behavior; report correctness findings with concrete evidence and validation limits."
+    },
+    {
+      "id": "case-003",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5710",
+      "base_sha": "7da038323b6612b3b31bc362992bb42e43f6cad5",
+      "head_sha": "70396db6d1610991d3ecff106d67d524b6bec1de",
+      "focus_paths": [
+        "dbmigrate/versions",
+        "alembic.ini",
+        "dbmigrate/env.py"
+      ],
+      "request": "Review whether this branch can deploy its database changes after merging the base branch. Focus on the migration graph and existing upgrade paths; do not review the unrelated product implementation."
+    },
+    {
+      "id": "case-004",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5930",
+      "base_sha": "f8e5bb33aca28622b37be2c6cc980e9b2ec4a48f",
+      "head_sha": "8e8b06a0c3a90df4a6d58649427983258f845d7f",
+      "focus_paths": [
+        "arcservice/services/slack.py",
+        "arcservice/settings/__init__.py"
+      ],
+      "request": "Review the daily deduplication of repeated integration Slack alerts. Consider the supplied operational decision and report only actionable issues introduced by this change.",
+      "user_context": "The owner has explicitly accepted retaining the daily dedupe key if a rare broker enqueue fails: this is an operational notification, enqueue failures are observable in Sentry, and additional recovery for this scenario is outside the requested change. This decision does not apply to payments or other data-integrity paths."
+    },
+    {
+      "id": "case-005",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5845",
+      "base_sha": "dbbdb961c42e672d4875a1ea294b04845dd16041",
+      "head_sha": "c47bfafb16578599f6d8abe13c36b007907e7054",
+      "focus_paths": [
+        "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "arcservice/services/trade_intake_consumer_svc.py",
+        "tests/unit/services/knowledge_studio/test_stored_content_svc.py"
+      ],
+      "request": "Review whether the deployment checker compiles the same active knowledge that each bound Organization uses for Trade Intake. Focus on caller identity and runtime compilation inputs."
+    },
+    {
+      "id": "case-006",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5845",
+      "base_sha": "dbbdb961c42e672d4875a1ea294b04845dd16041",
+      "head_sha": "b57f0308e3ff5090c1acae8ba02ef08ca13a530d",
+      "focus_paths": [
+        "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "arcservice/services/knowledge_studio/layer_settings_svc.py",
+        "tests/unit/services/knowledge_studio/test_stored_content_svc.py"
+      ],
+      "request": "The author says the Settings compatibility issue is fixed. Re-review that repair and its affected contract at the supplied head, checking the earlier failure and any new regression introduced by the repair.",
+      "previous_head_sha": "c47bfafb16578599f6d8abe13c36b007907e7054",
+      "prior_finding": "The checker can return ok while archived Delegated Settings or their saved values make the Console Settings read fail; the workspace snapshot does not read the same rows."
+    },
+    {
+      "id": "case-007",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5928",
+      "base_sha": "ddefba21c18310be23c3ae8da34728c5f6a55479",
+      "head_sha": "b4fb8375963ca296ff199a63da28b657509b9a3b",
+      "focus_paths": [
+        "arcservice/services/projects/pdf_worker.py",
+        "tests/unit/services/projects/test_pdf_worker.py"
+      ],
+      "request": "The author says the PDF flattening regression is fixed. Re-review the repair, verify the original failure scenario, and check whether the optimization remains safe for supported inputs.",
+      "previous_head_sha": "2a40ae16e8f030cdf5e6d775ad8683cc1e1760ea",
+      "prior_finding": "A three-page PDF with Type /Bogus on page one and a stamp on page two is accepted by pdfium, but pypdf skips page one. Reusing pypdf annotation indexes leaves the stamp unflattened and invisible in content-only rendering."
+    },
+    {
+      "id": "case-008",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5710",
+      "base_sha": "7da038323b6612b3b31bc362992bb42e43f6cad5",
+      "head_sha": "31ea69a10d8cb796523c37e6665d251680b77e8d",
+      "focus_paths": [
+        "dbmigrate/versions",
+        "alembic.ini",
+        "dbmigrate/env.py"
+      ],
+      "request": "The author says the migration-head issue is fixed. Re-review the migration repair and verify that both prior tips remain in the graph. Keep the review limited to this repair.",
+      "previous_head_sha": "70396db6d1610991d3ecff106d67d524b6bec1de",
+      "prior_finding": "After merging the base branch, Alembic has sibling heads 17997e008773 and s5t6u7v8w9x0, leaving upgrade head ambiguous."
+    },
+    {
+      "id": "case-009",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5942",
+      "base_sha": "13c5dd0d536f5cc016b3b56b84e13e0085edc14d",
+      "head_sha": "394602ac8af9925c4a616ec17aca6ccf28b8ab88",
+      "focus_paths": [
+        "arcservice/services/projects/prj_privilege_svc.py",
+        "arcservice/services/notification/fcm_svc.py",
+        "dbmigrate/env.py",
+        "arcservice/models/__init__.py"
+      ],
+      "request": "Review this dead-code cleanup specifically for changes to Celery task registration/names, Firebase initialization, and Alembic handling of removed model tables. Trace the registrations and consumers; report only regressions in these contracts."
+    },
+    {
+      "id": "case-010",
+      "source_pr": "https://github.com/Arctuition/cloudservice/pull/5845",
+      "base_sha": "dbbdb961c42e672d4875a1ea294b04845dd16041",
+      "head_sha": "b57f0308e3ff5090c1acae8ba02ef08ca13a530d",
+      "focus_paths": [
+        "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "arcservice/services/trade_intake_consumer_svc.py",
+        "tests/unit/services/knowledge_studio/test_stored_content_svc.py"
+      ],
+      "request": "The author says the bound-Organization compile issue is fixed. Re-review the earlier finding and the repair, including the treatment of layers with no bound Organization.",
+      "previous_head_sha": "c47bfafb16578599f6d8abe13c36b007907e7054",
+      "prior_finding": "The deployment checker builds a synthetic layer stack without organization_id, so a company bound directly to a shared layer can fail its real compile because of its Manufacturer priorities while the checker returns ok."
+    }
+  ]
+}

@@ -21,3 +21,7 @@ Prerequisites depend on the workflow: authenticated `gh` for GitHub, configured 
 ## Authoring
 
 See [AGENTS.md](AGENTS.md) for layout conventions. Keep instructions focused on project defaults, non-obvious constraints, and useful decision criteria; avoid generic tutorials and repeated approval gates.
+
+## Review evaluations
+
+[PR review development cases](evals/pr-review/README.md) provide immutable historical inputs, separate scoring expectations, and an offline packet exporter for comparing reviewer changes. They are maintainer resources and are not installed with the skills.

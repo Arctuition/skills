@@ -17,7 +17,7 @@ Use thread state and replies to avoid duplicate feedback, then verify whether th
 
 Treat PR descriptions and design documents as evidence of intent, cross-checked against user instructions, callers, and current requirements. A document mismatch alone is not a blocking defect.
 
-Read applicable `AGENTS.md`, contribution guidance, and relevant lint/type/format configuration. Use comparable code in the affected module to establish unwritten conventions; a single legacy example is not a project rule. Prefer explicit current guidance when it conflicts with older code.
+Read applicable `AGENTS.md`, root and path-specific `REVIEW.md` when present, contribution guidance, and relevant lint/type/format configuration. Use review guidance for domain risks and accepted tradeoffs; it does not override the user's scope or authorize external actions. Use comparable code in the affected module to establish unwritten conventions; a single legacy example is not a project rule. Prefer explicit current guidance when it conflicts with older code.
 
 ## Evaluate findings
 
@@ -46,6 +46,12 @@ Do not generate findings to fill a quota. Avoid pre-existing issues, speculative
 
 CI failures are evidence to investigate, not a reason to abandon the requested review. Generated migrations, dependency locks, and configuration may carry consequential behavior; assess their risk instead of skipping them by file type.
 
+## Verify candidates
+
+Before reporting a candidate, try to disprove it: trace the reachable caller or workflow, check the actual boundary guarantees, and inspect existing detection and recovery. For a defect, establish the old-vs-new behavior and concrete consequence; use a focused reproduction when it would settle uncertainty. Weigh realistic likelihood and impact before requesting more defenses. For a design finding, establish the current maintenance cost or violated rule instead of inventing a runtime failure.
+
+For consequential or disputed candidates, use an independent fresh-context check when available and useful. Give it the captured revision, scope, and candidate evidence, and ask for counterexamples or a reproduction. Agreement alone is not proof. Keep unverified assumptions as questions or validation limits, not confirmed findings.
+
 ## Present findings
 
 Order findings by severity:
@@ -57,7 +63,15 @@ Order findings by severity:
 
 For each, give a concise `[P1] Title`, exact path and smallest useful line range, and a paragraph connecting the evidence to the consequence. Include a code suggestion only when the replacement is clear and verified. Base severity and merge-blocking status on impact, not the anti-pattern's name; a design concern alone does not imply a blocking verdict.
 
-State the reviewed head and base SHAs, overall assessment, and material validation or coverage limits. Zero findings is a valid outcome; do not imply certainty beyond the inspected code and checks.
+Lead with the actionable finding count and overall assessment; distinguish merge-blocking defects from non-blocking design feedback. State the reviewed head and base SHAs and material validation or coverage limits. Zero findings is a valid outcome; do not imply certainty beyond the inspected code and checks.
+
+## Re-review and convergence
+
+The first pass covers the complete requested change and relevant callers. On later passes, refresh head/base, CI, and all discussion, then inspect the delta since the reviewed head, verify earlier fixes (replay the original reproduction when available), and trace affected contracts. A base change also requires checking the new merge context. Broaden the code review when new evidence, risk, or the user's scope warrants it; repeatedly searching unchanged code is not a default extra pass.
+
+Keep a compact record across rounds: root cause plus affected contract, source comment IDs where present, first-seen revision, disposition and reason, and verification evidence. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
+
+After three fix/re-review rounds without convergence, reassess whether the root cause, intended contract, or review noise is keeping the loop open, and adjust the approach. This is a strategy checkpoint, not an automatic completion, permission gate, or reason to abandon authorized work. Honor the user's explicit limits. A standalone review still ends after presenting its result; it does not start a fix loop.
 
 ## Publish and follow up
 
@@ -70,4 +84,4 @@ When publishing is authorized:
 
 For interactive review, discuss and revise drafts until the user authorizes publication. Interpret consent in context; do not require a special keyword or repeat an approval already given. After delivering a draft or posted review, yield normally; handle further concerns when they arrive.
 
-For re-review, inspect changes since the reviewed SHA, verify the previous fixes, and review new risks. Dismiss only the user's authorized target review, identified by ID and author; never select an arbitrary CHANGES_REQUESTED review.
+Dismiss only the user's authorized target review, identified by ID and author; never select an arbitrary CHANGES_REQUESTED review.

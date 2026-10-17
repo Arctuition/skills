@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "curated_on": "2026-10-17",
+  "status": "Initial development set; source/probe validation is not a measured reviewer benchmark.",
+  "cases": [
+    {
+      "id": "case-001",
+      "category": "defect",
+      "family": "pr-5845",
+      "expected": {
+        "root_cause": "The checker only opens layer_snapshot and never reads the Settings surface, so archived Delegated Settings or their saved values can be invalid while ok remains true.",
+        "consequence": "Deployment can be declared compatible although a supported Console Settings screen fails.",
+        "severity": [
+          "P2"
+        ],
+        "minimum_findings": 1
+      },
+      "evidence": {
+        "status": "source_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "symbol": "check",
+        "repair_sha": "b57f0308e3ff5090c1acae8ba02ef08ca13a530d",
+        "regression_test": "tests/unit/services/knowledge_studio/test_stored_content_svc.py::test_an_archived_declaration_is_read_as_the_settings_screen_reads_it",
+        "runtime_status": "Not rerun in this curation; the repaired commit contains the regression test."
+      }
+    },
+    {
+      "id": "case-002",
+      "category": "defect",
+      "family": "pr-5928",
+      "expected": {
+        "root_cause": "pypdf and pdfium can enumerate malformed-but-accepted page trees differently; reusing pypdf annotation indexes without verifying agreement can flatten the wrong page or index beyond the pdfium document.",
+        "consequence": "An accepted PDF can retain an unflattened annotation that disappears in content-only rendering.",
+        "severity": [
+          "P2"
+        ],
+        "minimum_findings": 1
+      },
+      "evidence": {
+        "status": "isolated_function_probe_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/projects/pdf_worker.py",
+        "symbol": "flatten_pdf",
+        "repair_sha": "b4fb8375963ca296ff199a63da28b657509b9a3b",
+        "regression_test": "tests/unit/services/projects/test_pdf_worker.py::test_flatten_pdf_data_flattens_every_page_when_pypdf_skips_a_page",
+        "probe": "Execute the unchanged flatten_pdf function extracted from each historical source with its real pypdf/pdfium dependencies. Use a three-page PDF, set the first page Type to /Bogus and add a stamp on page two.",
+        "observed": {
+          "base": {
+            "annotations": [
+              0,
+              0,
+              0
+            ],
+            "stamp_visible": true
+          },
+          "head": {
+            "annotations": [
+              0,
+              1,
+              0
+            ],
+            "stamp_visible": false
+          },
+          "repair": {
+            "annotations": [
+              0,
+              0,
+              0
+            ],
+            "stamp_visible": true
+          }
+        },
+        "runtime_status": "Isolated function reproduction, not a full upload pipeline or device test.",
+        "additional_probe": {
+          "status": "independent_isolated_function_probe_verified",
+          "input": "Three pages, /Pages /Count = 1, stamps on pages zero and two.",
+          "observed": "pypdf enumerates three pages while pdfium exposes one; head indexes doc[2] outside the fallback and upload falls back to unflattened data. Base preserves the visible stamp after splitting.",
+          "dependencies": "PyMuPDF 1.26.3, pypdf 6.19.0 and pypdfium2 5.6.0 matched the historical lockfile.",
+          "limits": "Synthetic input; production frequency unknown. Full Django pytest not run; MIME probe used file because native libmagic was unavailable."
+        }
+      }
+    },
+    {
+      "id": "case-003",
+      "category": "defect",
+      "family": "pr-5710",
+      "expected": {
+        "root_cause": "The merged branch has two Alembic heads without a merge revision.",
+        "consequence": "The deployment target upgrade head is ambiguous even though tests may create schemas directly from models.",
+        "severity": [
+          "P1",
+          "P2"
+        ],
+        "minimum_findings": 1
+      },
+      "evidence": {
+        "status": "migration_graph_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "dbmigrate/versions",
+        "repair_sha": "31ea69a10d8cb796523c37e6665d251680b77e8d",
+        "observed": {
+          "head_revisions": [
+            "17997e008773",
+            "s5t6u7v8w9x0"
+          ],
+          "repair_heads": [
+            "3a1f15e6c8a9"
+          ]
+        },
+        "probe": "Parse revision/down_revision literals from every migration at each exact Git tree and compute tips. The repairing revision has both old tips as parents and no-op upgrade/downgrade.",
+        "runtime_status": "Graph and no-op source verified; database upgrade/downgrade not rerun."
+      }
+    },
+    {
+      "id": "case-004",
+      "category": "accepted_tradeoff",
+      "family": "pr-5930",
+      "expected": {
+        "must_not_report": "Do not reopen the accepted Redis-key-survives-enqueue-failure concern or demand key rollback/tests for that concern without materially new evidence.",
+        "acceptable_limit": "May acknowledge the accepted notification-delivery tradeoff without calling it a defect or generalizing it to financial/data-loss paths.",
+        "accepted_concern_actionable_findings": 0,
+        "additional_supported_findings": [
+          {
+            "root_cause": "The new test uses fixed 24-hour Redis keys but requests only mocker; Redis cleanup requires explicit session/setup_base_data fixtures.",
+            "source_path": "tests/unit/services/test_slack.py",
+            "consequence": "Repeated focused runs can fail because the first run leaves the deduplication keys behind.",
+            "severity": [
+              "P2"
+            ],
+            "scoring": "A supported report of this separate test-isolation defect is not a false positive and does not reopen the accepted enqueue-failure tradeoff."
+          }
+        ]
+      },
+      "evidence": {
+        "status": "source_and_user_decision_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/slack.py",
+        "symbol": "post_message",
+        "source_observation": "Redis NX/TTL deduplication precedes async_send_message.delay; Sentry Django/Celery integration exists. The decision accepts this specific operational failure mode.",
+        "runtime_status": "No live broker failure or Sentry delivery verification performed.",
+        "additional_probe": {
+          "status": "independent_isolated_test_probe_verified",
+          "method": "Original post_message function and unchanged test body with isolated import wiring, mocked Celery and a temporary real Redis instance.",
+          "observed": [
+            "First run passed",
+            "Immediate repeat failed at test_slack.py:19",
+            "After Redis cleanup the test passed"
+          ],
+          "limits": "Not the complete Django/application pytest run; no live Slack/Celery delivery."
+        }
+      }
+    },
+    {
+      "id": "case-005",
+      "category": "defect",
+      "family": "pr-5845",
+      "expected": {
+        "root_cause": "The checker compiles a synthetic layer stack without the bound organization_id, omitting Organization-owned Manufacturer priorities for companies bound directly to shared layers.",
+        "consequence": "The checker can return ok while a real bound company cannot compile its active configuration.",
+        "severity": [
+          "P2"
+        ],
+        "minimum_findings": 1
+      },
+      "evidence": {
+        "status": "source_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "symbol": "check / _stack",
+        "repair_sha": "b57f0308e3ff5090c1acae8ba02ef08ca13a530d",
+        "regression_test": "tests/unit/services/knowledge_studio/test_stored_content_svc.py::test_a_company_bound_straight_to_a_shared_layer_is_compiled_as_itself",
+        "runtime_status": "Not rerun in this curation; the repaired commit contains the regression test."
+      }
+    },
+    {
+      "id": "case-006",
+      "category": "repair",
+      "family": "pr-5845",
+      "expected": {
+        "target_actionable_findings": 0,
+        "must_confirm": "check() now invokes get_layer_settings for the Settings surface even when the workspace is broken; invalid archived settings are reported.",
+        "must_not_report": "Do not repeat the previous missing-Settings-read finding. Missing runtime infrastructure is a validation limit, not proof of a regression."
+      },
+      "evidence": {
+        "status": "source_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "regression_test": "tests/unit/services/knowledge_studio/test_stored_content_svc.py::test_an_archived_declaration_is_read_as_the_settings_screen_reads_it",
+        "runtime_status": "Source and regression-test assertions inspected; runtime test not rerun."
+      }
+    },
+    {
+      "id": "case-007",
+      "category": "repair",
+      "family": "pr-5928",
+      "expected": {
+        "target_actionable_findings": 0,
+        "must_confirm": "The default is all pdfium pages; annotation indexes are used only when page counts agree, and reader errors retain the full-page fallback.",
+        "must_not_report": "Do not repeat the page-count/index-misalignment finding after verifying the fallback. Do not claim device or production-PDF verification without performing it."
+      },
+      "evidence": {
+        "status": "isolated_function_probe_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/projects/pdf_worker.py",
+        "regression_test": "tests/unit/services/projects/test_pdf_worker.py::test_flatten_pdf_data_flattens_every_page_when_pypdf_skips_a_page",
+        "observed": {
+          "annotations": [
+            0,
+            0,
+            0
+          ],
+          "stamp_visible": true
+        },
+        "runtime_status": "The same malformed-tree probe as case-002 passed against this exact function; full pipeline/device checks were not run."
+      }
+    },
+    {
+      "id": "case-008",
+      "category": "repair",
+      "family": "pr-5710",
+      "expected": {
+        "target_actionable_findings": 0,
+        "must_confirm": "Revision 3a1f15e6c8a9 joins both prior tips with no schema/data operations and leaves a single graph head.",
+        "must_not_report": "Do not demand rewriting the published parent migrations or treat the no-op merge as missing DDL. Distinguish graph verification from running real database upgrades."
+      },
+      "evidence": {
+        "status": "migration_graph_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "dbmigrate/versions/c00/3a1f15e6c8a9_.py",
+        "observed": {
+          "heads": [
+            "3a1f15e6c8a9"
+          ],
+          "parents": [
+            "17997e008773",
+            "s5t6u7v8w9x0"
+          ]
+        },
+        "runtime_status": "Graph and no-op source verified; database upgrade/downgrade not rerun. This commit, not the later d3266fba cleanup, introduces the merge revision."
+      }
+    },
+    {
+      "id": "case-009",
+      "category": "clean_in_scope",
+      "family": "pr-5942",
+      "expected": {
+        "target_actionable_findings": 0,
+        "must_confirm": "The decorated Celery functions and their names remain, Firebase initialize_app is still called, and removed tables are excluded from Alembic autogeneration.",
+        "must_not_report": "Do not equate deleting a Python alias or unused return-value assignment with removing the task/initialization. Do not flag merely similar symbol names as actual callers.",
+        "scope_limit": "This labels only the named contracts, not every deletion or the state of production historical polymorphic rows."
+      },
+      "evidence": {
+        "status": "source_verified",
+        "reviewed_on": "2026-10-17",
+        "source_paths": [
+          "arcservice/services/projects/prj_privilege_svc.py",
+          "arcservice/services/notification/fcm_svc.py",
+          "dbmigrate/env.py"
+        ],
+        "runtime_status": "Source/diff inspected; task registration, DB migrations and Firebase runtime initialization not rerun in this curation."
+      }
+    },
+    {
+      "id": "case-010",
+      "category": "repair",
+      "family": "pr-5845",
+      "expected": {
+        "target_actionable_findings": 0,
+        "must_confirm": "Each bound Organization compiles through trade_intake_consumer_svc.compile_program with its identity and active source; only unbound layers retain the synthetic-stack fallback.",
+        "must_not_report": "Do not infer that the remaining _stack helper proves the old bug remains; trace its callers and bound-layer exclusion."
+      },
+      "evidence": {
+        "status": "source_verified",
+        "reviewed_on": "2026-10-17",
+        "source_path": "arcservice/services/knowledge_studio/stored_content_svc.py",
+        "regression_test": "tests/unit/services/knowledge_studio/test_stored_content_svc.py::test_a_company_bound_straight_to_a_shared_layer_is_compiled_as_itself",
+        "runtime_status": "Source and regression-test assertions inspected; runtime test not rerun."
+      }
+    }
+  ]
+}
