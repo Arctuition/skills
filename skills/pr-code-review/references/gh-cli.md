@@ -23,7 +23,27 @@ git show "<HEAD_SHA>:<PATH>"
 gh api "repos/<OWNER/REPO>/contents/<PATH>?ref=<HEAD_SHA>" --jq .content | base64 -d
 ```
 
-For a quick CI view, use `gh pr checks "<PR>" --repo "<OWNER/REPO>"`; it follows the live PR. Confirm its head matches the snapshot before attributing those results to the reviewed code. If the head moved, inspect checks for the captured commit or refresh the snapshot.
+## CI evidence
+
+Checks follow the live PR. Confirm its head matches the snapshot before attributing results to the reviewed code. If the head moved, inspect checks for the captured commit or refresh the snapshot. Assess skipped, cancelled, and missing expected checks before calling CI green.
+
+```bash
+gh pr checks "<PR>" --repo "<OWNER/REPO>" --json name,state,bucket,link,workflow
+```
+
+For GitHub Actions failures, read the actual logs:
+
+```bash
+gh run view "<RUN_ID>" --repo "<OWNER/REPO>" --log-failed
+```
+
+For external CI, follow the check's link with available provider tools or authenticated browser/API access. Distinguish infrastructure/deployment failures from code defects.
+
+When waiting for checks is part of the requested task, use asynchronous execution/wait support so progress updates remain possible:
+
+```bash
+gh pr checks "<PR>" --repo "<OWNER/REPO>" --watch --interval 30
+```
 
 ## Existing discussion
 
@@ -124,13 +144,26 @@ A Markdown `suggestion` fence contains only replacement code, preserving indenta
 Use these only when the corresponding publication or edit is authorized.
 
 ```bash
-gh api -X POST "repos/<OWNER/REPO>/pulls/<PR>/comments/<COMMENT_ID>/replies" \
+gh api -X POST "repos/<OWNER/REPO>/pulls/<PR>/comments/<ROOT_COMMENT_ID>/replies" \
   --input "<REPLY_JSON_FILE>"
 gh api -X PATCH "repos/<OWNER/REPO>/pulls/comments/<COMMENT_ID>" \
   --input "<COMMENT_JSON_FILE>"
 ```
 
-Both payloads contain `{"body": "<TEXT>"}`. For one new inline comment, POST to `repos/<OWNER/REPO>/pulls/<PR>/comments` with `body`, `commit_id`, `path`, numeric `line`, and `side`.
+Both payloads contain `{"body": "<TEXT>"}`. Replies use the thread's root comment database ID; edits use the selected comment's database ID. For one new inline comment, POST to `repos/<OWNER/REPO>/pulls/<PR>/comments` with `body`, `commit_id`, `path`, numeric `line`, and `side`.
+
+Resolve a fixed finding only after verifying the repair at the current pushed SHA and receiving authorization to resolve threads. Use the thread's GraphQL node ID:
+
+```bash
+gh api graphql -F threadId="<THREAD_NODE_ID>" -f query='
+mutation($threadId:ID!) {
+  resolveReviewThread(input:{threadId:$threadId}) {
+    thread { id isResolved }
+  }
+}'
+```
+
+Confirm the returned resolution state. Top-level comments have no resolvable thread; track their disposition in the finding record when present.
 
 If the author pushed, review `git diff <OLD_SHA>..<NEW_SHA>` and revalidate earlier findings. To dismiss a stale review, first identify the exact review ID, author, and current state; do not select the first CHANGES_REQUESTED review.
 
@@ -141,4 +174,4 @@ gh api -X PUT "repos/<OWNER/REPO>/pulls/<PR>/reviews/<REVIEW_ID>/dismissals" \
 
 The dismissal payload contains `{"message": "<REASON>"}`. Dismissal is a separate review-state change and needs authorization.
 
-If a batched submission fails, inspect existing reviews before attempting individual comments or a general comment. A timed-out request may already have succeeded.
+If a publication request fails or times out, inspect existing reviews, replies, or thread state before retrying or posting an alternative; it may already have succeeded.

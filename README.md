@@ -14,7 +14,6 @@ Prerequisites depend on the workflow: authenticated `gh` for GitHub, configured 
 - [jira-ticket-manager](skills/jira-ticket-manager/SKILL.md) — Create, search, view, and update tickets with ArcSite component and Backlog defaults.
 - [last30days](skills/last30days/SKILL.md) — Synthesize recent community discussion with dated sources and explicit coverage limits.
 - [pr-code-review](skills/pr-code-review/SKILL.md) — Review PR correctness, excessive defenses and abstractions, abstraction leaks, project conventions, and test value; present findings locally and publish when authorized.
-- [pr-fix-loop](skills/pr-fix-loop/SKILL.md) — Fix CI and review findings, push, and re-scan the current head. Reply and resolve when authorized.
 - [sentry-issue-resolver](skills/sentry-issue-resolver/SKILL.md) — Diagnose from event evidence and source; implement fixes when requested.
 - [signoff](skills/signoff/SKILL.md) — Commit task-owned changes, push, create/update the PR, and open it in the default browser.
 

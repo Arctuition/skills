@@ -42,6 +42,8 @@ A finding should:
 
 Design findings do not need an invented runtime failure. Explain the current cost and the smallest useful simplification or boundary repair within the PR's scope. Avoid turning a local issue into a broad rewrite.
 
+When a finding comes from extra scope in a bug-fix PR, consider narrowing the PR before proposing new helpers, models, lookup paths, or contracts to repair that extra scope. Present material scope changes as a decision for the author.
+
 Do not generate findings to fill a quota. Avoid pre-existing issues, speculative edge cases, preference-only refactors, and duplicate feedback.
 
 CI failures are evidence to investigate, not a reason to abandon the requested review. Generated migrations, dependency locks, and configuration may carry consequential behavior; assess their risk instead of skipping them by file type.
