@@ -39,6 +39,8 @@ For each finding, determine whether it is:
 - **Needs a decision:** missing intent or a material product/API/design choice changes the result. Surface the choice; continue independent in-scope work.
 - **Not actionable:** already fixed, incorrect, pre-existing, explicitly deferred, or outside scope. Record the reason.
 
+On a bug-fix PR, a finding that is a regression in code this PR added outside the originally failing branch, or whose fix needs a new helper, model, lookup path, or contract, is **Needs a decision** rather than another patch: offer narrowing the PR back to the failing branch, with the current size from `gh pr view --json additions,deletions`.
+
 Do not implement a bot suggestion merely because it is mechanical. Try to disprove its premise against actual callers, boundary guarantees, and existing detection/recovery. Establish a reachable failure and material impact, or a concrete maintenance cost for design feedback; distinguish merge-blocking defects from non-blocking improvements. Use a focused reproduction or independent check when it would resolve consequential uncertainty. Resolve routine implementation choices autonomously; seek input only for substantive ambiguity or additional authority.
 
 For failing checks, read the actual logs. Use available CI tools, authenticated APIs, or browser access for external providers such as Jenkins; lack of `gh run` support alone is not a blocker. Distinguish infrastructure/deployment failures from code defects.
