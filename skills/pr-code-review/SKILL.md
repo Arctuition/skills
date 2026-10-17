@@ -42,6 +42,8 @@ A finding should:
 
 Design findings do not need an invented runtime failure. Explain the current cost and the smallest useful simplification or boundary repair within the PR's scope. Avoid turning a local issue into a broad rewrite.
 
+When a finding comes from extra scope in a bug-fix PR, consider narrowing the PR before proposing new helpers, models, lookup paths, or contracts to repair that extra scope. Present material scope changes as a decision for the author.
+
 Do not generate findings to fill a quota. Avoid pre-existing issues, speculative edge cases, preference-only refactors, and duplicate feedback.
 
 CI failures are evidence to investigate, not a reason to abandon the requested review. Generated migrations, dependency locks, and configuration may carry consequential behavior; assess their risk instead of skipping them by file type.
@@ -51,6 +53,22 @@ CI failures are evidence to investigate, not a reason to abandon the requested r
 Before reporting a candidate, try to disprove it: trace the reachable caller or workflow, check the actual boundary guarantees, and inspect existing detection and recovery. For a defect, establish the old-vs-new behavior and concrete consequence; use a focused reproduction when it would settle uncertainty. Weigh realistic likelihood and impact before requesting more defenses. For a design finding, establish the current maintenance cost or violated rule instead of inventing a runtime failure.
 
 For consequential or disputed candidates, use an independent fresh-context check when available and useful. Give it the captured revision, scope, and candidate evidence, and ask for counterexamples or a reproduction. Agreement alone is not proof. Keep unverified assumptions as questions or validation limits, not confirmed findings.
+
+## Shared evidence and handoff
+
+Reuse an existing `review.md`; create one only to retain a useful repro or hand off work. Default to `$HOME/.local/state/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`, outside temporary directories and worktrees. Take all four path segments from the canonical PR web URL: web host, base repository owner/name, and numeric PR number; never use an SSH alias or the head fork. Copy temporary records and repro artifacts there and update their links.
+
+Treat the record as historical context. Before reuse, match its PR URL to the current PR and confirm its reviewed head is the current PR head or an ancestor of it. Archive a mismatched record with its artifacts and restart as a first pass. Always refresh live CI and discussion. A new or explicitly full review performs the full first pass; only a continuation uses delta review. One agent writes each record at a time; collaborators return evidence to that writer.
+
+Keep the record to:
+
+- **Revision:** canonical PR URL and reviewed head/base.
+- **Checks:** command or CI link, tested SHA, result, and remaining validation.
+- **Findings:** root cause + affected contract, comment IDs/body versions when relevant, first-seen SHA, status/reason, and evidence links.
+
+Retain useful repro scripts and minimal sanitized inputs and outputs beside the record through follow-up; remove redundant raw captures created for this work. Include command/setup, tested SHAs and observed results. Verify repairs with the same scenario; a regression test counts only if it fails on the pre-fix code for the claimed bug and passes after. Label source-only or unrun evidence; promote probes to permanent tests only when their regression value warrants it.
+
+Share absolute paths to handoff artifacts only with the user or the next local agent. Keep handoff files and their local filesystem paths out of commits, PR bodies, reviews and replies, even when publication is authorized; use PR URLs, SHAs and comment IDs as public handoff references.
 
 ## Present findings
 
@@ -69,7 +87,7 @@ Lead with the actionable finding count and overall assessment; distinguish merge
 
 The first pass covers the complete requested change and relevant callers. On later passes, refresh head/base, CI, and all discussion, then inspect the delta since the reviewed head, verify earlier fixes (replay the original reproduction when available), and trace affected contracts. A base change also requires checking the new merge context. Broaden the code review when new evidence, risk, or the user's scope warrants it; repeatedly searching unchanged code is not a default extra pass.
 
-Keep a compact record across rounds: root cause plus affected contract, source comment IDs where present, first-seen revision, disposition and reason, and verification evidence. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
+Carry any shared record across rounds. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
 
 After three fix/re-review rounds without convergence, reassess whether the root cause, intended contract, or review noise is keeping the loop open, and adjust the approach. This is a strategy checkpoint, not an automatic completion, permission gate, or reason to abandon authorized work. Honor the user's explicit limits. A standalone review still ends after presenting its result; it does not start a fix loop.
 
