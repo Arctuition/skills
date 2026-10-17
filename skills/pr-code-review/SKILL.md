@@ -54,15 +54,19 @@ For consequential or disputed candidates, use an independent fresh-context check
 
 ## Shared evidence and handoff
 
-For fixes, pending validation, or a handoff, reuse one local `review.md` in persistent storage outside temporary directories and worktrees; default to `$HOME/.local/state/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`. If reusing a temporary record, copy it and its repro artifacts there and update their links. Read it before investigating and update it in place across review/fix rounds. Link its absolute path in the handoff or final response. A completed review without follow-up needs only its final summary.
+Reuse an existing `review.md`; create one only to retain a useful repro or hand off work. Default to `$HOME/.local/state/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`, outside temporary directories and worktrees. Take all four path segments from the canonical PR web URL: web host, base repository owner/name, and numeric PR number; never use an SSH alias or the head fork. Copy temporary records and repro artifacts there and update their links.
+
+Treat the record as historical context. Before reuse, match its PR URL to the current PR and confirm its reviewed head is the current PR head or an ancestor of it. Archive a mismatched record with its artifacts and restart as a first pass. Always refresh live CI and discussion. A new or explicitly full review performs the full first pass; only a continuation uses delta review. One agent writes each record at a time; collaborators return evidence to that writer.
 
 Keep the record to:
 
-- **Revision:** PR URL and reviewed head/base.
+- **Revision:** canonical PR URL and reviewed head/base.
 - **Checks:** command or CI link, tested SHA, result, and remaining validation.
 - **Findings:** root cause + affected contract, comment IDs/body versions when relevant, first-seen SHA, status/reason, and evidence links.
 
-Retain useful repro scripts, minimal sanitized inputs and relevant output beside the record until follow-up is complete. Include the command/setup and observed results at the tested SHAs. Verify repairs with the same scenario; a regression test is evidence only if it fails on the pre-fix code for the claimed bug and passes after. Label source-only or unrun evidence explicitly. Promote probes to permanent tests only when their regression value warrants it. Keep local handoff artifacts out of commits and published comments unless requested.
+Retain useful repro scripts and minimal sanitized inputs and outputs beside the record through follow-up; remove redundant raw captures created for this work. Include command/setup, tested SHAs and observed results. Verify repairs with the same scenario; a regression test counts only if it fails on the pre-fix code for the claimed bug and passes after. Label source-only or unrun evidence; promote probes to permanent tests only when their regression value warrants it.
+
+Share absolute paths to handoff artifacts only with the user or the next local agent. Keep handoff files and their local filesystem paths out of commits, PR bodies, reviews and replies, even when publication is authorized; use PR URLs, SHAs and comment IDs as public handoff references.
 
 ## Present findings
 
@@ -81,7 +85,7 @@ Lead with the actionable finding count and overall assessment; distinguish merge
 
 The first pass covers the complete requested change and relevant callers. On later passes, refresh head/base, CI, and all discussion, then inspect the delta since the reviewed head, verify earlier fixes (replay the original reproduction when available), and trace affected contracts. A base change also requires checking the new merge context. Broaden the code review when new evidence, risk, or the user's scope warrants it; repeatedly searching unchanged code is not a default extra pass.
 
-Carry the shared record across rounds. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
+Carry any shared record across rounds. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
 
 After three fix/re-review rounds without convergence, reassess whether the root cause, intended contract, or review noise is keeping the loop open, and adjust the approach. This is a strategy checkpoint, not an automatic completion, permission gate, or reason to abandon authorized work. Honor the user's explicit limits. A standalone review still ends after presenting its result; it does not start a fix loop.
 
