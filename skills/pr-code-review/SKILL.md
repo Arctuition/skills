@@ -52,6 +52,18 @@ Before reporting a candidate, try to disprove it: trace the reachable caller or 
 
 For consequential or disputed candidates, use an independent fresh-context check when available and useful. Give it the captured revision, scope, and candidate evidence, and ask for counterexamples or a reproduction. Agreement alone is not proof. Keep unverified assumptions as questions or validation limits, not confirmed findings.
 
+## Shared evidence and handoff
+
+For fixes, pending validation, or a handoff, reuse one local `review.md`; default to `/tmp/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`. Read it before investigating and update it in place across review/fix rounds. Link its absolute path in the handoff or final response. A completed review without follow-up needs only its final summary.
+
+Keep the record to:
+
+- **Revision:** PR URL and reviewed head/base.
+- **Checks:** command or CI link, tested SHA, result, and remaining validation.
+- **Findings:** root cause + affected contract, comment IDs/body versions when relevant, first-seen SHA, status/reason, and evidence links.
+
+Retain useful repro scripts, minimal sanitized inputs and relevant output beside the record until follow-up is complete. Include the command/setup and observed results at the tested SHAs. Verify repairs with the same scenario; a regression test is evidence only if it fails on the pre-fix code for the claimed bug and passes after. Label source-only or unrun evidence explicitly. Promote probes to permanent tests only when their regression value warrants it. Keep local handoff artifacts out of commits and published comments unless requested.
+
 ## Present findings
 
 Order findings by severity:
@@ -69,7 +81,7 @@ Lead with the actionable finding count and overall assessment; distinguish merge
 
 The first pass covers the complete requested change and relevant callers. On later passes, refresh head/base, CI, and all discussion, then inspect the delta since the reviewed head, verify earlier fixes (replay the original reproduction when available), and trace affected contracts. A base change also requires checking the new merge context. Broaden the code review when new evidence, risk, or the user's scope warrants it; repeatedly searching unchanged code is not a default extra pass.
 
-Keep a compact record across rounds: root cause plus affected contract, source comment IDs where present, first-seen revision, disposition and reason, and verification evidence. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
+Carry the shared record across rounds. Line movement does not create a new finding. Reopen a rejected or accepted-tradeoff finding only for materially new evidence; do not repeat it merely because another reviewer phrases it differently. A newly evidenced material defect introduced by the PR remains actionable even if an earlier pass missed it.
 
 After three fix/re-review rounds without convergence, reassess whether the root cause, intended contract, or review noise is keeping the loop open, and adjust the approach. This is a strategy checkpoint, not an automatic completion, permission gate, or reason to abandon authorized work. Honor the user's explicit limits. A standalone review still ends after presenting its result; it does not start a fix loop.
 

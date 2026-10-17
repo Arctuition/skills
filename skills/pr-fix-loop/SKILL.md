@@ -26,9 +26,21 @@ Treat connector accounts such as `claude`, `chatgpt-codex-connector`, `coderabbi
 
 Use GraphQL `reviewThreads.isResolved` for thread state. CI green, mergeability, an outdated line, an "addressed" reply, or a thumbs-up reaction does not prove a finding is fixed. Verify it against current source.
 
-Keep a compact record keyed by root cause plus affected contract, with comment IDs/body versions, first-seen revision, disposition and reason, and verification evidence. Carry it across rounds; line movement or a reworded duplicate does not reset a finding. Re-evaluate edited comments and replies for new evidence, but reopen an accepted tradeoff or rejected finding only when that evidence changes its premise.
+Update the shared record after each scan; line movement or a reworded duplicate does not reset a finding. Re-evaluate edited comments and replies for new evidence, but reopen an accepted tradeoff or rejected finding only when that evidence changes its premise.
 
 After the first pass, review the delta since the last reviewed head, the original fixes, and affected callers; refresh the full feedback/CI surface every round. Recheck merge interactions if the base advances. Expand code review when new evidence, risk, or the user requests it, rather than repeatedly mining unchanged code. A newly evidenced material defect introduced by the PR still needs evaluation even if earlier passes missed it.
+
+## Shared evidence and handoff
+
+For fixes, pending validation, or a handoff, reuse one local `review.md`; default to `/tmp/pr-review/<HOST>/<OWNER>/<REPO>/<PR>/review.md`. Read it before investigating and update it in place across review/fix rounds. Link its absolute path in the handoff or final response. A completed review without follow-up needs only its final summary.
+
+Keep the record to:
+
+- **Revision:** PR URL and reviewed head/base.
+- **Checks:** command or CI link, tested SHA, result, and remaining validation.
+- **Findings:** root cause + affected contract, comment IDs/body versions when relevant, first-seen SHA, status/reason, and evidence links.
+
+Retain useful repro scripts, minimal sanitized inputs and relevant output beside the record until follow-up is complete. Include the command/setup and observed results at the tested SHAs. Verify repairs with the same scenario; a regression test is evidence only if it fails on the pre-fix code for the claimed bug and passes after. Label source-only or unrun evidence explicitly. Promote probes to permanent tests only when their regression value warrants it. Keep local handoff artifacts out of commits and published comments unless requested.
 
 ## Evaluate and fix
 
