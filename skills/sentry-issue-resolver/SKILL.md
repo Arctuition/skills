@@ -49,6 +49,7 @@ Keep event ID/time, release, environment, transaction, breadcrumbs, and relevant
 - Compare the event's deployed release with the inspected source. A merged fix may not have reached the affected worker or frontend release.
 - Follow application frames and callers to establish the triggering input or state. Inspect the frame data instead of assuming the first frame is the throw site.
 - Separate confirmed evidence from hypotheses and state what would distinguish competing explanations.
+- If two fixes sharing the same premise fail the same verification, state that premise and test it directly before trying another fix based on it. Choose an observation that would differ if the premise were false, and use the result to reassess the cause.
 - For a requested fix, preserve existing contracts, make the smallest supported change, and run proportionate validation. Distinguish local verification from deployment or production recovery.
 
 Report the failure, trigger and impact, cause with code locations, and the fix or next diagnostic step. Avoid filling a fixed report template or manufacturing a second solution.
